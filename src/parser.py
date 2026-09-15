@@ -77,11 +77,20 @@ def parse_telegram_html(file_path: Path) -> List[Dict[str, Any]]:
         dt: Optional[datetime] = None
         if date_div and date_div.get("title"):
             title_str = date_div["title"].strip()
-            try:
-                dt = datetime.strptime(title_str, "%d %B %Y, %H:%M:%S")
-                last_seen_dt = dt
-            except ValueError:
-                pass
+            clean_title = title_str.split(" UTC")[0].strip()
+            for fmt in (
+                "%d %B %Y, %H:%M:%S",
+                "%d %B %Y %H:%M:%S",
+                "%d.%m.%Y %H:%M:%S",
+                "%d-%m-%Y %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S",
+            ):
+                try:
+                    dt = datetime.strptime(clean_title, fmt)
+                    last_seen_dt = dt
+                    break
+                except ValueError:
+                    pass
 
         if dt is None:
             dt = last_seen_dt

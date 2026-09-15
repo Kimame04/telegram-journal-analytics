@@ -27,3 +27,12 @@ env/
 # Personal Telegram chat export datasets (privacy protection)
 ChatExport*/
 ChatExport_*
+!ChatExport_sample/
+!ChatExport_sample/**
+ChatExport_sample/.cache/
+ChatExport_sample/**/*.parquet
+ChatExport_sample/**/.DS_Store
+
+# Local generated analytics outputs
+output/
+!output/**/.gitkeep

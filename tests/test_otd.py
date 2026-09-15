@@ -14,13 +14,14 @@ from src.otd import (
     get_random_active_day,
     generate_otd_html,
 )
+from tests.helpers import get_test_export_dir
 
 
 class TestOTD(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.export_dir = Path("ChatExport_kieran's channel")
+        cls.export_dir = get_test_export_dir()
         cls.df = load_export(cls.export_dir, use_cache=True, verbose=False)
 
     def test_parse_query_date(self):
