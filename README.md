@@ -32,7 +32,7 @@ Understand your biological and psychological rhythms:
 ## Project Architecture
 
 ```
-tele-channel-history/
+telegram-journal-analytics/
 ├── src/
 │   ├── parser.py       # Universal Telegram HTML parser & Parquet cache engine
 │   ├── circadian.py    # Circadian distribution & longitudinal habit models
