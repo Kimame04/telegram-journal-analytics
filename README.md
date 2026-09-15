@@ -80,11 +80,18 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Adding Your Telegram Export
+### 2. Testing with Synthetic Mock Data (No Private Data Needed)
+You can instantly generate an authentic mock Telegram export (`ChatExport_sample/`) to test all features:
+```bash
+python -m scripts.generate_synthetic_export --num-messages 400
+```
+This generates mock entries with realistic circadian curves, interest lifecycles (`[reading]`, `[coding]`, `[fitness]`, `[elden ring]`, `[ai agents]`), and multi-year memories.
+
+### 3. Adding Your Real Telegram Export
 1. Open Telegram Desktop $\rightarrow$ Navigate to your channel $\rightarrow$ Click **Export Chat History**.
 2. Select **HTML format** and your desired date range.
 3. Place the exported folder into this repository (e.g. `ChatExport_your_channel/`).
-*(Note: Raw export folders are ignored by git to keep your personal journal entries private).*
+*(Note: Real user export folders are strictly ignored by git to keep your personal thoughts private).*
 
 ---
 
@@ -106,18 +113,18 @@ python -m scripts.run_otd --window 2
 # Discover a random past active journal day
 python -m scripts.run_otd --random
 
-# Point to a custom export directory
-python -m scripts.run_otd --export-dir "path/to/ChatExport"
+# Run against the synthetic demo dataset
+python -m scripts.run_otd --export-dir "ChatExport_sample" --date 09-15
 ```
 
 ### 2. Run Tag & Hobby Lifecycles
 ```bash
-python -m scripts.run_tag_lifecycles --export-dir "path/to/ChatExport"
+python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
 ```
 
 ### 3. Run Circadian & Habit Heatmaps
 ```bash
-python -m scripts.run_circadian --export-dir "path/to/ChatExport"
+python -m scripts.run_circadian --export-dir "ChatExport_sample"
 ```
 
 ---
@@ -128,8 +135,18 @@ Run the automated test suite across all modules:
 ```bash
 python -m unittest discover tests
 ```
+> **Self-Contained:** Tests automatically run against `ChatExport_sample` (or dynamically generate a temporary mock fixture if needed), allowing the entire test suite to pass on fresh clones and CI/CD runners without needing private personal data.
+
+---
+
+## Potential Future Features
+
+- **Channel-Wrapped:** An annual or all-time retrospective summary (Spotify Wrapped style) highlighting your top fixations, most active reflection months, night-owl streaks, and personal milestones.
+- **Telegram Bot Integration:** An automated companion bot that pushes daily "On This Day" flashback messages directly to your channel or DM, eliminating manual export steps.
+- **Concern & Anxiety Evolution:** Longitudinal tracking of worries, stressors, and emotional themes over time to see how past challenges evolved and resolved.
+- **"Ask Past You":** Semantic search and conversational Q&A (RAG) over your journal history to query what you thought or felt about specific topics in the past.
 
 ---
 
 ## License & Privacy
-Designed for personal journal reflection. Raw export directories and Parquet cache files are excluded from version control in `.gitignore` to prevent leaking private messages or media attachments.
+Designed for personal journal reflection. Real export directories (`ChatExport_*`) and Parquet cache files are excluded from version control in `.gitignore` to protect personal privacy, while mock datasets (`ChatExport_sample/`) are safe for sharing.
