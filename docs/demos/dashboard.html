@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Journal Intelligence Dossier</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface-color: rgba(22, 27, 34, 0.85);
+            --surface-border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-purple: #bc8cff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-teal: #39c5bb;
+            --accent-rose: #f778ba;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(56, 139, 253, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 20%, rgba(188, 140, 255, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 50% 80%, rgba(57, 197, 187, 0.06) 0%, transparent 50%);
+            color: var(--text-primary);
+            padding: 0 0 3rem 0;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Sticky Navigation Bar */
+        .sticky-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--surface-border);
+            padding: 0.65rem 0;
+            margin-bottom: 2rem;
+        }
+        .nav-inner {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .brand {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            letter-spacing: -0.3px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .nav-pill {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+        }
+        .nav-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--surface-border);
+        }
+
+        /* Hero Header */
+        header {
+            text-align: center;
+            margin-bottom: 2.2rem;
+            padding: 1.5rem 0;
+        }
+        .super-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-blue);
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: -0.8px;
+            color: #ffffff;
+            margin-bottom: 0.45rem;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 760px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        /* Hero KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 2.5rem;
+        }
+        .kpi-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.9rem;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(88, 166, 255, 0.4);
+        }
+        .kpi-val {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.15rem;
+        }
+        .kpi-lbl {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            margin-top: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Section Layout */
+        .section-anchor {
+            scroll-margin-top: 70px;
+            margin-bottom: 3rem;
+        }
+        .section-header {
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 0.75rem;
+        }
+        .section-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+        .section-badge {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Generic Chart Card */
+        .chart-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(12px);
+        }
+        .chart-card-header {
+            padding: 1rem 1.3rem;
+            border-bottom: 1px solid var(--surface-border);
+            background: rgba(255, 255, 255, 0.015);
+        }
+        .chart-card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .chart-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+        .chart-card-body {
+            padding: 0.6rem 0.4rem;
+        }
+
+        /* Wrapped Highlights Grid */
+        .wrapped-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .story-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            backdrop-filter: blur(12px);
+        }
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .story-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .story-tagline {
+            font-size: 0.85rem;
+            font-style: italic;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+        .story-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.86rem;
+        }
+        .story-item {
+            display: flex;
+            justify-content: space-between;
+            color: #e6edf3;
+        }
+        .story-label {
+            color: var(--text-secondary);
+        }
+        .story-quote {
+            font-size: 0.85rem;
+            color: #e6edf3;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-purple);
+            padding: 0.6rem 0.8rem;
+            border-radius: 0 6px 6px 0;
+            margin-top: 0.5rem;
+            line-height: 1.45;
+        }
+
+        /* Lifespan Archetypes Grid */
+        .archetypes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .archetype-col {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.9rem;
+        }
+        .archetype-col-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.65rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+        }
+        .tag-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            padding: 0.25rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.015);
+            margin-bottom: 0.35rem;
+        }
+
+        /* On This Day Styles */
+        .year-section {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            margin-bottom: 1.2rem;
+            overflow: hidden;
+        }
+        .year-header {
+            padding: 0.75rem 1.1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .year-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .tag-pill {
+            display: inline-block;
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 10px;
+            margin-right: 0.25rem;
+        }
+        .messages-container {
+            padding: 0.75rem 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .message-card {
+            background: rgba(255, 255, 255, 0.025);
+            border-left: 3px solid var(--accent-blue);
+            border-radius: 0 6px 6px 0;
+            padding: 0.55rem 0.85rem;
+        }
+        .message-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.2rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .entry-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #ffffff;
+            padding: 0.05rem 0.35rem;
+            border-radius: 4px;
+            margin: 0 0.15rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sticky Navigation Bar -->
+    <nav class="sticky-nav">
+        <div class="nav-inner">
+            <div class="brand">
+                <span>📖</span> Telegram Journal Dossier
+            </div>
+            <div class="nav-links">
+                <a href="#overview" class="nav-pill">📊 Overview</a>
+                <a href="#circadian" class="nav-pill">🌙 Circadian</a>
+                <a href="#lifecycles" class="nav-pill">🌊 Lifecycles</a>
+                <a href="#wrapped" class="nav-pill">🎁 Wrapped</a>
+                <a href="#otd" class="nav-pill">🕰️ On This Day</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" id="overview">
+        <!-- Hero Header -->
+        <header>
+            <div class="super-title">Universal Intelligence Dossier</div>
+            <h1>Personal Journal Master Dashboard</h1>
+            <div class="subtitle">
+                Comprehensive multi-year temporal rhythms, topic lifecycles, retrospective milestones, and memory flashbacks
+ · <span style="color: #ffffff; font-weight: 600;">Dec 2023 – Sep 2026</span>            </div>
+
+            <!-- Hero KPI Grid -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-val">400</div>
+                    <div class="kpi-lbl">Total Entries</div>
+                    <div class="kpi-sub">3,992 words</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">~14.5</div>
+                    <div class="kpi-lbl">Book Pages</div>
+                    <div class="kpi-sub">~19 min read</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-green);">30.9%</div>
+                    <div class="kpi-lbl">Consistency</div>
+                    <div class="kpi-sub">315 active days</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-orange);">5d</div>
+                    <div class="kpi-lbl">Longest Streak</div>
+                    <div class="kpi-sub">Daily streak record</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">23:00</div>
+                    <div class="kpi-lbl">Peak Hour</div>
+                    <div class="kpi-sub">43 entries</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-purple);">26.5%</div>
+                    <div class="kpi-lbl">Night Owl Share</div>
+                    <div class="kpi-sub">10 PM – 4 AM</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">[reading]</div>
+                    <div class="kpi-lbl">#1 Top Fixation</div>
+                    <div class="kpi-sub">59 mentions</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="font-size: 1.25rem;">🦉 The Midnight Philosopher</div>
+                    <div class="kpi-lbl">Persona Archetype</div>
+                    <div class="kpi-sub">Mondays prime</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- SECTION 1: CIRCADIAN & HABIT PROFILING -->
+            <section class="section-anchor" id="circadian">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🌙 Circadian & Habit Profile</div>
+                        <div class="section-desc">24-hour mental clock, weekday activity matrix, and longitudinal reflection shifts</div>
+                    </div>
+                    <div class="section-badge">Temporal Rhythms</div>
+                </div>
+
+                <!-- 1. 24h Distribution -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">⏰ 24-Hour Circadian Entry Distribution</div>
+                        <div class="chart-card-desc">Hourly entry density. Amber bars highlight late night reflections (10 PM – 4 AM).</div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div style="height:340px; width:100%;">                            <div id="ca7fc80e-867d-4730-ba92-348ac6a200dd" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("ca7fc80e-867d-4730-ba92-348ac6a200dd")) {                    Plotly.newPlot(                        "ca7fc80e-867d-4730-ba92-348ac6a200dd",                        [{"hovertemplate":"Hour %{x}: \u003cb\u003e%{y:,}\u003c\u002fb\u003e messages\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#ff9800","#ff9800","#ff9800","#ff9800","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#58a6ff","#ff9800","#ff9800"]},"name":"Hourly Volume","x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":{"dtype":"i1","bdata":"EAgEAQIEAQQICQ0MFhoWFhURGhohGiIr"},"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#c9d1d9"},"margin":{"l":65,"r":30,"t":25,"b":45},"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","height":340,"showlegend":false,"xaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Hour of Day (00:00 - 23:00)"},"tickangle":-45,"gridcolor":"rgba(255,255,255,0.06)"},"yaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Messages"},"gridcolor":"rgba(255,255,255,0.06)"}},                        {"responsive": true}                    )                };            </script>        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Weekly Heatmap -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">📅 Weekly Activity Rhythm (Day vs. Hour)</div>
+                        <div class="chart-card-desc">Density matrix of entries by day of week. Hover to see the top active topics during that slot.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div style="height:380px; width:100%;">                            <div id="5c1b46a4-a951-4763-a159-985e09a631b3" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("5c1b46a4-a951-4763-a159-985e09a631b3")) {                    Plotly.newPlot(                        "5c1b46a4-a951-4763-a159-985e09a631b3",                        [{"colorbar":{"tickfont":{"color":"#8b949e"},"title":{"font":{"color":"#8b949e","size":12},"text":"Messages"}},"colorscale":[[0.0,"rgb(176, 242, 188)"],[0.16666666666666666,"rgb(137, 232, 172)"],[0.3333333333333333,"rgb(103, 219, 165)"],[0.5,"rgb(76, 200, 163)"],[0.6666666666666666,"rgb(56, 178, 163)"],[0.8333333333333334,"rgb(44, 152, 160)"],[1.0,"rgb(37, 125, 152)"]],"hoverinfo":"text","text":[["\u003cb\u003eMonday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1)","\u003cb\u003eMonday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [ai agents] (1)","\u003cb\u003eMonday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eMonday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [running] (1)","\u003cb\u003eMonday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coffee] (1)","\u003cb\u003eMonday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [baking] (1), [reading] (1)","\u003cb\u003eMonday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eMonday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eMonday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [synthv] (1)","\u003cb\u003eMonday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [coding] (1)","\u003cb\u003eMonday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1)","\u003cb\u003eMonday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [coding] (1)","\u003cb\u003eMonday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eMonday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [coding] (1)","\u003cb\u003eMonday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e9\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (2), [reading] (2), [coffee] (1)","\u003cb\u003eMonday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [reading] (1)","\u003cb\u003eMonday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [reading] (1)","\u003cb\u003eMonday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [coding] (1), [ai agents] (1)","\u003cb\u003eMonday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [japan trip] (1)"],["\u003cb\u003eTuesday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eTuesday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eTuesday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [fitness] (1)","\u003cb\u003eTuesday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eTuesday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coding] (1)","\u003cb\u003eTuesday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [synthv] (1)","\u003cb\u003eTuesday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eTuesday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1)","\u003cb\u003eTuesday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (2)","\u003cb\u003eTuesday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eTuesday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1)","\u003cb\u003eTuesday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1)","\u003cb\u003eTuesday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [ai agents] (1), [reading] (1)","\u003cb\u003eTuesday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [reading] (1)","\u003cb\u003eTuesday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [fitness] (1)","\u003cb\u003eTuesday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e8\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1), [coding] (1), [running] (1)"],["\u003cb\u003eWednesday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (3)","\u003cb\u003eWednesday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eWednesday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eWednesday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eWednesday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [ai agents] (1)","\u003cb\u003eWednesday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1), [ai agents] (1), [reading] (1)","\u003cb\u003eWednesday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coding] (1), [fitness] (1)","\u003cb\u003eWednesday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coffee] (1), [fitness] (1)","\u003cb\u003eWednesday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [ai agents] (1)","\u003cb\u003eWednesday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [synthv] (1)","\u003cb\u003eWednesday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1)","\u003cb\u003eWednesday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eWednesday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [baking] (1)","\u003cb\u003eWednesday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eWednesday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [fitness] (1)","\u003cb\u003eWednesday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [reading] (1)"],["\u003cb\u003eThursday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [synthv] (1), [ai agents] (1)","\u003cb\u003eThursday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [synthv] (1)","\u003cb\u003eThursday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eThursday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1)","\u003cb\u003eThursday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eThursday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1)","\u003cb\u003eThursday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eThursday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [fitness] (1), [synthv] (1)","\u003cb\u003eThursday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [coffee] (1), [reading] (1)","\u003cb\u003eThursday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [reading] (1), [fitness] (1)","\u003cb\u003eThursday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [baking] (1), [ai agents] (1)","\u003cb\u003eThursday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eThursday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [coffee] (1), [synthv] (1)","\u003cb\u003eThursday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (2), [reading] (1)","\u003cb\u003eThursday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [reading] (1), [ai agents] (1)","\u003cb\u003eThursday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (2), [coding] (1), [reading] (1)","\u003cb\u003eThursday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [ai agents] (1), [running] (1)"],["\u003cb\u003eFriday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [ai agents] (1)","\u003cb\u003eFriday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eFriday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [synthv] (1)","\u003cb\u003eFriday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eFriday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coding] (1)","\u003cb\u003eFriday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eFriday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2)","\u003cb\u003eFriday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [baking] (1)","\u003cb\u003eFriday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [fitness] (1), [ai agents] (1)","\u003cb\u003eFriday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1)","\u003cb\u003eFriday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [reading] (1)","\u003cb\u003eFriday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [synthv] (1), [reading] (1), [coding] (1)","\u003cb\u003eFriday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eFriday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e8\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (2), [reading] (1), [coffee] (1)","\u003cb\u003eFriday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [coffee] (1), [coding] (1)","\u003cb\u003eFriday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (2)","\u003cb\u003eFriday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e10\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (3), [coffee] (3), [synthv] (2)"],["\u003cb\u003eSaturday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1), [baking] (1)","\u003cb\u003eSaturday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [synthv] (1)","\u003cb\u003eSaturday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eSaturday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSaturday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSaturday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eSaturday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSaturday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSaturday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSaturday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eSaturday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1)","\u003cb\u003eSaturday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [elden ring] (1), [reading] (1)","\u003cb\u003eSaturday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [fitness] (1), [synthv] (1)","\u003cb\u003eSaturday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [ai agents] (1), [running] (1)","\u003cb\u003eSaturday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [coding] (1)","\u003cb\u003eSaturday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [fitness] (1), [synthv] (1)","\u003cb\u003eSaturday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eSaturday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1)","\u003cb\u003eSaturday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (2), [reading] (1), [coding] (1)","\u003cb\u003eSaturday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1)","\u003cb\u003eSaturday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [ai agents] (1)","\u003cb\u003eSaturday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (2), [elden ring] (1)","\u003cb\u003eSaturday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1), [elden ring] (1), [coffee] (1)","\u003cb\u003eSaturday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coffee] (1), [running] (1), [reading] (1)"],["\u003cb\u003eSunday at 00:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [synthv] (1)","\u003cb\u003eSunday at 01:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [japan trip] (1)","\u003cb\u003eSunday at 02:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eSunday at 03:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSunday at 04:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSunday at 05:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSunday at 06:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSunday at 07:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [coding] (1)","\u003cb\u003eSunday at 08:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2)","\u003cb\u003eSunday at 09:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [baking] (1), [fitness] (1)","\u003cb\u003eSunday at 10:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eSunday at 11:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1)","\u003cb\u003eSunday at 12:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (2), [coffee] (1), [synthv] (1)","\u003cb\u003eSunday at 13:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e3\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)","\u003cb\u003eSunday at 14:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e5\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [coding] (1)","\u003cb\u003eSunday at 15:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [baking] (1)","\u003cb\u003eSunday at 16:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e1\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [ai agents] (1)","\u003cb\u003eSunday at 17:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e0\u003c\u002fb\u003e\u003cbr\u003eTop Topics: None","\u003cb\u003eSunday at 18:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [running] (1)","\u003cb\u003eSunday at 19:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e6\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (3), [coffee] (2)","\u003cb\u003eSunday at 20:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e7\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [fitness] (1), [reading] (1), [coding] (1)","\u003cb\u003eSunday at 21:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e2\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [elden ring] (1)","\u003cb\u003eSunday at 22:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e4\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [coding] (1), [reading] (1)","\u003cb\u003eSunday at 23:00\u003c\u002fb\u003e\u003cbr\u003eMessages: \u003cb\u003e8\u003c\u002fb\u003e\u003cbr\u003eTop Topics: [reading] (1)"]],"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"z":{"dtype":"i1","bdata":"AgMCAAEBAAACAQQAAgQEAwMEAwkCBQUGAQAAAAAAAQAAAgMBAwQBAgQCBAIDBAUIAwAAAAAAAAECAQADAwYDAwUCBAIEAwQCBAIAAAACAAEAAQEBAQQEBQUEAAQFBAYEAwEAAQEAAAACAAICBAMBBAICBAAIBAQKAgEBAAABAAAAAQEDBQIEAwEDBQMEBAYFAQEBAAAAAAICAwICBAMFAgEABgYHAgQI","shape":"7, 24"},"type":"heatmap"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#c9d1d9"},"margin":{"l":75,"r":40,"t":25,"b":45},"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","height":380,"xaxis":{"tickangle":-45,"gridcolor":"rgba(255,255,255,0.06)"},"yaxis":{"gridcolor":"rgba(255,255,255,0.06)"}},                        {"responsive": true}                    )                };            </script>        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Longitudinal Shift -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">⏳ Longitudinal Circadian Shift</div>
+                        <div class="chart-card-desc">Percentage share of each month's reflections across hours, highlighting evolving sleep routines over the years.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div style="height:748px; width:100%;">                            <div id="a6bf4cd4-befc-4ef2-abf7-4da15a17956e" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("a6bf4cd4-befc-4ef2-abf7-4da15a17956e")) {                    Plotly.newPlot(                        "a6bf4cd4-befc-4ef2-abf7-4da15a17956e",                        [{"colorbar":{"tickfont":{"color":"#8b949e"},"title":{"font":{"color":"#8b949e","size":12},"text":"% Share"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]],"hovertemplate":"Month: %{y}\u003cbr\u003eHour: %{x}\u003cbr\u003eShare: \u003cb\u003e%{z:.1f}%\u003c\u002fb\u003e\u003cextra\u003e\u003c\u002fextra\u003e","x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"z":{"dtype":"f8","bdata":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvuuiiiy4iQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL7rooosuIkAAAAAAAAAAAAAAAAAAAAAAL7rooosuIkAvuuiiiy4iQAAAAAAAAAAAAAAAAAAAAAAvuuiiiy4iQC+66KKLLjJAAAAAAAAAAAAAAAAAAAAAAC+66KKLLiJAL7rooosuIkAvuuiiiy4iQC+66KKLLiJAqqqqqqqqMEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqqqqqqqqMEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqjBAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqjBAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqjBAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqjBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI7jOI7jOCZAjuM4juM4JkAAAAAAAAAAAAAAAAAAAAAAjuM4juM4NkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACO4ziO4zg2QAAAAAAAAAAAjuM4juM4JkAAAAAAAAAAAI7jOI7jODZAqqqqqqqqIEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqiBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqiBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqqqqqqqqIEAAAAAAAAA5QAAAAAAAAAAAAAAAAAAAAACqqqqqqqogQKqqqqqqqjBAAAAAAAAAAAAAAAAAAAAAAKqqqqqqqjBAjuM4juM4NkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI7jOI7jOCZAAAAAAAAAAACO4ziO4zgmQI7jOI7jOCZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjuM4juM4JkCqqqqqqqpAQAAAAAAAAAAAJEmSJEmSHEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkSZIkSZIcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJEmSJEmSLEAkSZIkSZIcQAAAAAAAAAAAJEmSJEmSHEAkSZIkSZIsQCRJkiRJkhxAJEmSJEmSLEAkSZIkSZIsQCRJkiRJkhxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACqqqqqqqogQAAAAAAAAAAAqqqqqqqqIECqqqqqqqowQAAAAAAAAAAAqqqqqqqqIEAAAAAAAAAAAAAAAAAAAAAAqqqqqqqqIEAAAAAAAAAAAAAAAAAAAAAAqqqqqqqqIECqqqqqqqogQAAAAAAAAAAAqqqqqqqqMECqqqqqqqogQKqqqqqqqiBAAAAAAAAAAAAAAAAAAAApQAAAAAAAAAAAAAAAAAAAKUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5QAAAAAAAAClAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJEmSJEmSLEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkSZIkSZIsQCRJkiRJkixAJEmSJEmSLEAAAAAAAAAAACRJkiRJkixAAAAAAAAAAAAAAAAAAAAAACRJkiRJkixAJEmSJEmSLEAAAAAAAAAAAAAAAAAAAAAAq6qqqqqqGkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACrqqqqqqoaQAAAAAAAAAAA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","shape":"34, 24"},"type":"heatmap"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#c9d1d9"},"margin":{"l":75,"r":40,"t":25,"b":45},"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","height":748,"xaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Hour of Day"},"tickangle":-45,"gridcolor":"rgba(255,255,255,0.06)"},"yaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Year - Month"},"gridcolor":"rgba(255,255,255,0.06)"}},                        {"responsive": true}                    )                };            </script>        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: TAG & HOBBY LIFECYCLES -->
+            <section class="section-anchor" id="lifecycles">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🌊 Tag & Hobby Lifecycles</div>
+                        <div class="section-desc">Topic evolution, hyperfixation streams, and interest lifespan classifications</div>
+                    </div>
+                    <div class="section-badge">Topic Dynamics</div>
+                </div>
+
+                <!-- 1. Streamgraph -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">🌊 Interactive Hobby Streamgraph</div>
+                        <div class="chart-card-desc">Stacked area stream of top interests over time. Hover along the timeline to reveal the top 5 active topics for any month.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div style="height:520px; width:100%;">                            <div id="18f7108a-ca25-4223-9c56-a94683750a99" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("18f7108a-ca25-4223-9c56-a94683750a99")) {                    Plotly.newPlot(                        "18f7108a-ca25-4223-9c56-a94683750a99",                        [{"fillcolor":"#2E5B88","hoverinfo":"skip","line":{"color":"#2E5B88","width":0.8},"mode":"lines","name":"#1 [reading] (59 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AgABAAIBAAEABAIAAwUAAQMCAgQAAQMCAAMBAwECBAQAAg=="},"type":"scatter"},{"fillcolor":"#E65100","hoverinfo":"skip","line":{"color":"#E65100","width":0.8},"mode":"lines","name":"#2 [coding] (45 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AQEDAQIBAQEABAACAQIDAAECAwEBAAEAAQECAAMBAgEBAQ=="},"type":"scatter"},{"fillcolor":"#2E7D32","hoverinfo":"skip","line":{"color":"#2E7D32","width":0.8},"mode":"lines","name":"#3 [fitness] (39 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAEAAQEEAQEBAQIBAAMBAAMCAQEBAwACAAEBAAAFAQAAAA=="},"type":"scatter"},{"fillcolor":"#C2185B","hoverinfo":"skip","line":{"color":"#C2185B","width":0.8},"mode":"lines","name":"#4 [coffee] (32 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAACAwACAQICAQIBAQIBAwACAQEAAAABAAABAQIAAAAAAA=="},"type":"scatter"},{"fillcolor":"#6A1B9A","hoverinfo":"skip","line":{"color":"#6A1B9A","width":0.8},"mode":"lines","name":"#5 [ai agents] (19 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBAABAwQDAw=="},"type":"scatter"},{"fillcolor":"#00838F","hoverinfo":"skip","line":{"color":"#00838F","width":0.8},"mode":"lines","name":"#6 [synthv] (17 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAAAAAAAABQUDAwEAAAAAAAAAAAAAAA=="},"type":"scatter"},{"fillcolor":"#D84315","hoverinfo":"skip","line":{"color":"#D84315","width":0.8},"mode":"lines","name":"#7 [elden ring] (15 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAwQDBQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="},"type":"scatter"},{"fillcolor":"#558B2F","hoverinfo":"skip","line":{"color":"#558B2F","width":0.8},"mode":"lines","name":"#8 [running] (10 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAwMCAA=="},"type":"scatter"},{"fillcolor":"#1565C0","hoverinfo":"skip","line":{"color":"#1565C0","width":0.8},"mode":"lines","name":"#9 [japan trip] (9 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAAAAAAAAAAAAAAAABQMBAAAAAAAAAAAAAAAAAAAAAA=="},"type":"scatter"},{"fillcolor":"#AD1457","hoverinfo":"skip","line":{"color":"#AD1457","width":0.8},"mode":"lines","name":"#10 [baking] (8 msgs)","stackgroup":"one","x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":{"dtype":"i1","bdata":"AAAAAAAAAAACAQMCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="},"type":"scatter"},{"hoverinfo":"text","hovertext":["\u003cb\u003eDecember 2023\u003c\u002fb\u003e (3 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJanuary 2024\u003c\u002fb\u003e (2 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e2. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eFebruary 2024\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMarch 2024\u003c\u002fb\u003e (8 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#D84315; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[elden ring]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eApril 2024\u003c\u002fb\u003e (9 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#D84315; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[elden ring]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMay 2024\u003c\u002fb\u003e (11 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#D84315; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[elden ring]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJune 2024\u003c\u002fb\u003e (8 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#D84315; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[elden ring]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJuly 2024\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eAugust 2024\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#AD1457; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[baking]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eSeptember 2024\u003c\u002fb\u003e (11 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#AD1457; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[baking]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eOctober 2024\u003c\u002fb\u003e (9 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#AD1457; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[baking]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs","\u003cb\u003eNovember 2024\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#AD1457; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[baking]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eDecember 2024\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJanuary 2025\u003c\u002fb\u003e (12 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs","\u003cb\u003eFebruary 2025\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMarch 2025\u003c\u002fb\u003e (9 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#1565C0; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[japan trip]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eApril 2025\u003c\u002fb\u003e (10 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#1565C0; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[japan trip]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e4. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMay 2025\u003c\u002fb\u003e (9 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e5. \u003cspan style='color:#1565C0; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[japan trip]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJune 2025\u003c\u002fb\u003e (12 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#00838F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[synthv]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJuly 2025\u003c\u002fb\u003e (12 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#00838F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[synthv]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eAugust 2025\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#00838F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[synthv]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eSeptember 2025\u003c\u002fb\u003e (7 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#00838F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[synthv]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eOctober 2025\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#00838F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[synthv]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eNovember 2025\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eDecember 2025\u003c\u002fb\u003e (1 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJanuary 2026\u003c\u002fb\u003e (5 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eFebruary 2026\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e3. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e4. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMarch 2026\u003c\u002fb\u003e (8 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eApril 2026\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#C2185B; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coffee]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eMay 2026\u003c\u002fb\u003e (11 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 5 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#558B2F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[running]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e4. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs\u003cbr\u003e5. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJune 2026\u003c\u002fb\u003e (13 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e3. \u003cspan style='color:#558B2F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[running]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e4. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e5. \u003cspan style='color:#2E7D32; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[fitness]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eJuly 2026\u003c\u002fb\u003e (12 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e2. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 4 msgs\u003cbr\u003e3. \u003cspan style='color:#558B2F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[running]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e4. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eAugust 2026\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#558B2F; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[running]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs","\u003cb\u003eSeptember 2026\u003c\u002fb\u003e (6 stream msgs)\u003cbr\u003e\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u003cbr\u003e1. \u003cspan style='color:#6A1B9A; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[ai agents]\u003c\u002fb\u003e: 3 msgs\u003cbr\u003e2. \u003cspan style='color:#2E5B88; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[reading]\u003c\u002fb\u003e: 2 msgs\u003cbr\u003e3. \u003cspan style='color:#E65100; font-size:15px;'\u003e\u25a0\u003c\u002fspan\u003e \u003cb\u003e[coding]\u003c\u002fb\u003e: 1 msgs"],"marker":{"color":"rgba(0,0,0,0)"},"name":"Top 5 Monthly","showlegend":false,"x":["2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"y":[13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65,13.65],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#c9d1d9"},"hoverlabel":{"font":{"size":13,"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#f0f6fc"},"bgcolor":"rgba(22, 27, 34, 0.96)","bordercolor":"#30363d"},"legend":{"title":{"font":{"color":"#c9d1d9"},"text":"\u003cb\u003eRanked Interests\u003c\u002fb\u003e"},"orientation":"h","y":-0.22,"x":0.5,"xanchor":"center"},"margin":{"l":55,"r":30,"t":25,"b":65},"height":520,"barmode":"overlay","paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","hovermode":"closest","xaxis":{"tickangle":-45,"gridcolor":"rgba(255,255,255,0.06)"},"yaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Monthly Mentions"},"range":[0,13.65],"gridcolor":"rgba(255,255,255,0.06)"}},                        {"responsive": true}                    )                };            </script>        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Ranked Bars -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">📊 Ranked Interest Volume</div>
+                        <div class="chart-card-desc">Total journal mentions matching signature stream colors. Hover to inspect category archetype and peak month.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div style="height:380px; width:100%;">                            <div id="513e0a93-1b22-4879-9948-ff8c1d3025b8" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("513e0a93-1b22-4879-9948-ff8c1d3025b8")) {                    Plotly.newPlot(                        "513e0a93-1b22-4879-9948-ff8c1d3025b8",                        [{"customdata":[["Seasonal Burst","2024-08","2024-11","2024-10",3],["Seasonal Burst","2025-03","2025-05","2025-03",5],["Emerging Era","2026-05","2026-08","2026-06",3],["Seasonal Burst","2024-03","2024-06","2024-06",5],["Seasonal Burst","2025-06","2025-10","2025-06",5],["Emerging Era","2026-02","2026-09","2026-03",4],["Evergreen Passion","2024-02","2026-04","2024-03",3],["Evergreen Passion","2024-01","2026-06","2026-05",5],["Evergreen Passion","2023-12","2026-09","2024-09",4],["Evergreen Passion","2023-12","2026-09","2025-01",5]],"hovertemplate":"\u003cb\u003e%{y}\u003c\u002fb\u003e\u003cbr\u003eTotal Messages: \u003cb\u003e%{x:,}\u003c\u002fb\u003e\u003cbr\u003eCategory: \u003cb\u003e%{customdata[0]}\u003c\u002fb\u003e\u003cbr\u003eSpan: %{customdata[1]} to %{customdata[2]}\u003cbr\u003ePeak: %{customdata[3]} (%{customdata[4]} msgs)\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#AD1457","#1565C0","#558B2F","#D84315","#00838F","#6A1B9A","#C2185B","#2E7D32","#E65100","#2E5B88"]},"name":"Total Messages","orientation":"h","x":{"dtype":"i1","bdata":"CAkKDxETICctOw=="},"y":["#10 [baking]","#9 [japan trip]","#8 [running]","#7 [elden ring]","#6 [synthv]","#5 [ai agents]","#4 [coffee]","#3 [fitness]","#2 [coding]","#1 [reading]"],"type":"bar"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#f2f5fa"},"error_y":{"color":"#f2f5fa"},"marker":{"line":{"color":"rgb(17,17,17)","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"baxis":{"endlinecolor":"#A2B1C6","gridcolor":"#506784","linecolor":"#506784","minorgridcolor":"#506784","startlinecolor":"#A2B1C6"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"line":{"color":"#283442"}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"marker":{"line":{"color":"#283442"}},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#506784"},"line":{"color":"rgb(17,17,17)"}},"header":{"fill":{"color":"#2a3f5f"},"line":{"color":"rgb(17,17,17)"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#f2f5fa","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#f2f5fa"},"geo":{"bgcolor":"rgb(17,17,17)","lakecolor":"rgb(17,17,17)","landcolor":"rgb(17,17,17)","showlakes":true,"showland":true,"subunitcolor":"#506784"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"dark"},"paper_bgcolor":"rgb(17,17,17)","plot_bgcolor":"rgb(17,17,17)","polar":{"angularaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","radialaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"yaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"},"zaxis":{"backgroundcolor":"rgb(17,17,17)","gridcolor":"#506784","gridwidth":2,"linecolor":"#506784","showbackground":true,"ticks":"","zerolinecolor":"#C8D4E3"}},"shapedefaults":{"line":{"color":"#f2f5fa"}},"sliderdefaults":{"bgcolor":"#C8D4E3","bordercolor":"rgb(17,17,17)","borderwidth":1,"tickwidth":0},"ternary":{"aaxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"baxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""},"bgcolor":"rgb(17,17,17)","caxis":{"gridcolor":"#506784","linecolor":"#506784","ticks":""}},"title":{"x":0.05},"updatemenudefaults":{"bgcolor":"#506784","borderwidth":0},"xaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#283442","linecolor":"#506784","ticks":"","title":{"standoff":15},"zerolinecolor":"#283442","zerolinewidth":2}}},"font":{"family":"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif","color":"#c9d1d9"},"margin":{"l":140,"r":35,"t":25,"b":45},"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)","height":380,"showlegend":false,"xaxis":{"title":{"font":{"color":"#8b949e","size":12},"text":"Total Messages"},"gridcolor":"rgba(255,255,255,0.06)"},"yaxis":{"tickfont":{"color":"#c9d1d9"},"gridcolor":"rgba(255,255,255,0.06)"}},                        {"responsive": true}                    )                };            </script>        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Archetype Breakdown -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">🏷️ Lifespan Archetypes Breakdown</div>
+                        <div class="chart-card-desc">Classification of all tracked topics based on longevity and burst activity patterns.</div>
+                    </div>
+                    <div class="archetypes-grid">
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>🌟 Evergreen Passions</span>
+                                <span style="color: var(--accent-blue);">4</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[reading]</span>
+                                <span style="color: var(--text-secondary);">59 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[coding]</span>
+                                <span style="color: var(--text-secondary);">45 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[fitness]</span>
+                                <span style="color: var(--text-secondary);">39 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[coffee]</span>
+                                <span style="color: var(--text-secondary);">32 msgs</span>
+                            </div>
+                        </div>
+
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>⚡ Seasonal Bursts</span>
+                                <span style="color: var(--accent-orange);">4</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[synthv]</span>
+                                <span style="color: var(--text-secondary);">17 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[elden ring]</span>
+                                <span style="color: var(--text-secondary);">15 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[japan trip]</span>
+                                <span style="color: var(--text-secondary);">9 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[baking]</span>
+                                <span style="color: var(--text-secondary);">8 msgs</span>
+                            </div>
+                        </div>
+
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>🌱 Emerging Eras</span>
+                                <span style="color: var(--accent-green);">2</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[ai agents]</span>
+                                <span style="color: var(--text-secondary);">19 msgs</span>
+                            </div>
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[running]</span>
+                                <span style="color: var(--text-secondary);">10 msgs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: CHANNEL-WRAPPED RETROSPECTIVE HIGHLIGHTS -->
+            <section class="section-anchor" id="wrapped">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🎁 Channel-Wrapped Retrospective Highlights</div>
+                        <div class="section-desc">Milestones, personas, cadence streaks, standout moments, and emotional expressiveness</div>
+                    </div>
+                    <div class="section-badge">All-Time (2023–2026)</div>
+                </div>
+
+                <div class="wrapped-grid">
+                    <!-- Card 1: Persona -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🦉 Circadian Persona</span>
+                            <span style="font-size: 1.2rem;">🦉</span>
+                        </div>
+                        <div class="story-tagline">"Most reflective when the world winds down, decompressing under the moonlight."</div>
+                        <ul class="story-list">
+                            <li class="story-item"><span class="story-label">Archetype:</span> <b>The Midnight Philosopher</b></li>
+                            <li class="story-item"><span class="story-label">Peak Reflection Hour:</span> <b>11:00 PM</b></li>
+                            <li class="story-item"><span class="story-label">Favorite Day:</span> <b>Monday</b> (66 msgs)</li>
+                            <li class="story-item"><span class="story-label">Busiest Month:</span> <b>June</b> (43 msgs)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2: Streaks & Hiatuses -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">⚡ Streaks & Consistency</span>
+                            <span style="color: var(--accent-orange); font-weight: 700;">5 days</span>
+                        </div>
+                        <ul class="story-list">
+                            <li class="story-item"><span class="story-label">Longest Daily Streak:</span> <b>5 days</b></li>
+                            <li class="story-item"><span class="story-label">Streak Window:</span> <span style="font-size: 0.8rem; color: var(--text-secondary);">Sep 12, 2025 → Sep 16, 2025</span></li>
+                            <li class="story-item"><span class="story-label">Longest Hiatus:</span> <b>17 days pause</b></li>
+                            <li class="story-item"><span class="story-label">Hiatus Window:</span> <span style="font-size: 0.8rem; color: var(--text-secondary);">Jan 16, 2024 → Feb 03, 2024</span></li>
+                            <li class="story-item"><span class="story-label">Active Days:</span> <b>315 / 1019 (30.9%)</b></li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3: Top Fixations & Companions -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🏷️ Fixations & Companions</span>
+                            <span style="color: var(--accent-purple);">5 topics</span>
+                        </div>
+                        <ul class="story-list">
+                            <li class="story-item">
+                                <span>#1 <b>[reading]</b></span>
+                                <span>59 msgs (24.3%)</span>
+                            </li>
+                            <li class="story-item">
+                                <span>#2 <b>[coding]</b></span>
+                                <span>45 msgs (18.5%)</span>
+                            </li>
+                            <li class="story-item">
+                                <span>#3 <b>[fitness]</b></span>
+                                <span>39 msgs (16.0%)</span>
+                            </li>
+                            <li class="story-item">
+                                <span>#4 <b>[coffee]</b></span>
+                                <span>32 msgs (13.2%)</span>
+                            </li>
+                            <li style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                <b>Companion pairs:</b>
+                                <code>[ai agents] + [reading] (2x)</code>,                                 <code>[coding] + [elden ring] (1x)</code>                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 4: Expressiveness & Media -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🎭 Expressiveness & Reactions</span>
+                            <span style="color: var(--accent-teal);">241 reacts</span>
+                        </div>
+                        <ul class="story-list">
+                            <li class="story-item">
+                                <span class="story-label">Top Reaction Emojis:</span>
+                                <span><b>🔥</b> (59) <b>👏</b> (52) <b>❤</b> (45) <b>🎉</b> (45) <b>👍</b> (40) </span>
+                            </li>
+                            <li class="story-item"><span class="story-label">Visual Archives:</span> <b>56 photos, 56 media</b></li>
+                            <li class="story-item"><span class="story-label">Thought Monologues:</span> <b>0 self-replies</b></li>
+                            <li class="story-item"><span class="story-label">Top Reacted Entry:</span> <b>6 reactions</b> (❤3 👍3)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 5: The Magnum Opus -->
+                    <div class="story-card" style="grid-column: 1 / -1;">
+                        <div class="story-header">
+                            <span class="story-title">🏆 The Magnum Opus (Longest Reflection)</span>
+                            <span style="color: var(--accent-orange); font-weight: 700;">18 words</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.35rem;">
+                            Penned on June 25, 2026 at 09:17 PM
+                        </div>
+                        <div class="story-quote">
+                            "[reading] The plot twist in this chapter caught me completely off guard. Also spent time on [ai agents]."
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: ON THIS DAY TIME CAPSULE -->
+            <section class="section-anchor" id="otd">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🕰️ On This Day Time Capsule</div>
+                        <div class="section-desc">
+                            Looking back across past years of memories for <b>September 15</b>
+                        </div>
+                    </div>
+                    <div class="section-badge">8 memories</div>
+                </div>
+
+                    <div class="year-section">
+                        <div class="year-header">
+                            <span class="year-title">This Year (2026)</span>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.4rem;">2 msgs</span>
+                            </div>
+                        </div>
+                        <div class="messages-container">
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 11:02 AM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Quiet Sunday reflections. Prepped everything for the week ahead.
+                                </div>
+                            </div>
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 4:16 PM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Caught a beautiful sunset on the walk back home.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="year-section">
+                        <div class="year-header">
+                            <span class="year-title">1 Year Ago (2025)</span>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.4rem;">2 msgs</span>
+                            </div>
+                        </div>
+                        <div class="messages-container">
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>🌙 1:40 AM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Cooked dinner at home today instead of ordering takeout.
+                                </div>
+                            </div>
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>🌙 10:55 PM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Quick reminder to drink more water and get to sleep earlier tonight.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="year-section">
+                        <div class="year-header">
+                            <span class="year-title">2 Years Ago (2024)</span>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.4rem;">4 msgs</span>
+                            </div>
+                        </div>
+                        <div class="messages-container">
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 7:47 AM</span>
+                                    <span style="color: var(--accent-orange); font-weight: 600;">📷 photo</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    [coding] Finally resolved a stubborn caching bug that bugged me for days.
+                                </div>
+                            </div>
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 9:48 AM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    [reading] The plot twist in this chapter caught me completely off guard.
+                                </div>
+                            </div>
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 2:35 PM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Had a productive day clearing backlogged tasks and emails.
+                                </div>
+                            </div>
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>☀️ 6:45 PM</span>
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    Caught a beautiful sunset on the walk back home.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </section>
+        </main>
+
+        <footer>
+            Generated by <b>Telegram Journal Analytics</b> · Unified Master Dossier · 100% Offline & Private
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Journal Intelligence Dossier</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface-color: rgba(22, 27, 34, 0.85);
+            --surface-border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-purple: #bc8cff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-teal: #39c5bb;
+            --accent-rose: #f778ba;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(56, 139, 253, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 20%, rgba(188, 140, 255, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 50% 80%, rgba(57, 197, 187, 0.06) 0%, transparent 50%);
+            color: var(--text-primary);
+            padding: 0 0 3rem 0;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Sticky Navigation Bar */
+        .sticky-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--surface-border);
+            padding: 0.65rem 0;
+            margin-bottom: 2rem;
+        }
+        .nav-inner {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .brand {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            letter-spacing: -0.3px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .nav-pill {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+        }
+        .nav-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--surface-border);
+        }
+
+        /* Hero Header */
+        header {
+            text-align: center;
+            margin-bottom: 2.2rem;
+            padding: 1.5rem 0;
+        }
+        .super-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-blue);
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: -0.8px;
+            color: #ffffff;
+            margin-bottom: 0.45rem;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 760px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        /* Hero KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.85rem;
+            margin-bottom: 2.5rem;
+        }
+        .kpi-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.9rem;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(88, 166, 255, 0.4);
+        }
+        .kpi-val {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.15rem;
+        }
+        .kpi-lbl {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            margin-top: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Section Layout */
+        .section-anchor {
+            scroll-margin-top: 70px;
+            margin-bottom: 3rem;
+        }
+        .section-header {
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 0.75rem;
+        }
+        .section-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+        .section-badge {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Generic Chart Card */
+        .chart-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(12px);
+        }
+        .chart-card-header {
+            padding: 1rem 1.3rem;
+            border-bottom: 1px solid var(--surface-border);
+            background: rgba(255, 255, 255, 0.015);
+        }
+        .chart-card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .chart-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+        .chart-card-body {
+            padding: 0.6rem 0.4rem;
+        }
+
+        /* Wrapped Highlights Grid */
+        .wrapped-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .story-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            backdrop-filter: blur(12px);
+        }
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .story-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .story-tagline {
+            font-size: 0.85rem;
+            font-style: italic;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+        .story-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.86rem;
+        }
+        .story-item {
+            display: flex;
+            justify-content: space-between;
+            color: #e6edf3;
+        }
+        .story-label {
+            color: var(--text-secondary);
+        }
+        .story-quote {
+            font-size: 0.85rem;
+            color: #e6edf3;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent-purple);
+            padding: 0.6rem 0.8rem;
+            border-radius: 0 6px 6px 0;
+            margin-top: 0.5rem;
+            line-height: 1.45;
+        }
+
+        /* Lifespan Archetypes Grid */
+        .archetypes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .archetype-col {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.9rem;
+        }
+        .archetype-col-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.65rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+        }
+        .tag-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            padding: 0.25rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.015);
+            margin-bottom: 0.35rem;
+        }
+
+        /* On This Day Styles */
+        .year-section {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            margin-bottom: 1.2rem;
+            overflow: hidden;
+        }
+        .year-header {
+            padding: 0.75rem 1.1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .year-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .tag-pill {
+            display: inline-block;
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 10px;
+            margin-right: 0.25rem;
+        }
+        .messages-container {
+            padding: 0.75rem 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .message-card {
+            background: rgba(255, 255, 255, 0.025);
+            border-left: 3px solid var(--accent-blue);
+            border-radius: 0 6px 6px 0;
+            padding: 0.55rem 0.85rem;
+        }
+        .message-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.2rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .entry-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #ffffff;
+            padding: 0.05rem 0.35rem;
+            border-radius: 4px;
+            margin: 0 0.15rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sticky Navigation Bar -->
+    <nav class="sticky-nav">
+        <div class="nav-inner">
+            <div class="brand">
+                <span>📖</span> Telegram Journal Dossier
+            </div>
+            <div class="nav-links">
+                <a href="#overview" class="nav-pill">📊 Overview</a>
+                <a href="#circadian" class="nav-pill">🌙 Circadian</a>
+                <a href="#lifecycles" class="nav-pill">🌊 Lifecycles</a>
+                <a href="#wrapped" class="nav-pill">🎁 Wrapped</a>
+                <a href="#otd" class="nav-pill">🕰️ On This Day</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" id="overview">
+        <!-- Hero Header -->
+        <header>
+            <div class="super-title">Universal Intelligence Dossier</div>
+            <h1>Personal Journal Master Dashboard</h1>
+            <div class="subtitle">
+                Comprehensive multi-year temporal rhythms, topic lifecycles, retrospective milestones, and memory flashbacks
+                {% if data.date_span %} · <span style="color: #ffffff; font-weight: 600;">{{ data.date_span }}</span>{% endif %}
+            </div>
+
+            <!-- Hero KPI Grid -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-val">{{ data.total_messages | commas }}</div>
+                    <div class="kpi-lbl">Total Entries</div>
+                    <div class="kpi-sub">{{ data.total_words | commas }} words</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">~{{ data.book_pages }}</div>
+                    <div class="kpi-lbl">Book Pages</div>
+                    <div class="kpi-sub">~{{ data.reading_time_mins }} min read</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-green);">{{ data.active_days_pct }}%</div>
+                    <div class="kpi-lbl">Consistency</div>
+                    <div class="kpi-sub">{{ data.active_days }} active days</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-orange);">{{ data.longest_streak_days }}d</div>
+                    <div class="kpi-lbl">Longest Streak</div>
+                    <div class="kpi-sub">Daily streak record</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">{{ "%02d:00" | format(metrics.peak_hour) }}</div>
+                    <div class="kpi-lbl">Peak Hour</div>
+                    <div class="kpi-sub">{{ metrics.peak_hour_count | commas }} entries</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="color: var(--accent-purple);">{{ metrics.night_owl_pct }}%</div>
+                    <div class="kpi-lbl">Night Owl Share</div>
+                    <div class="kpi-sub">10 PM – 4 AM</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val">[{{ summary.top_tag }}]</div>
+                    <div class="kpi-lbl">#1 Top Fixation</div>
+                    <div class="kpi-sub">{{ summary.top_tag_count | commas }} mentions</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-val" style="font-size: 1.25rem;">{{ p.emoji }} {{ p.name }}</div>
+                    <div class="kpi-lbl">Persona Archetype</div>
+                    <div class="kpi-sub">{{ metrics.peak_day }}s prime</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- SECTION 1: CIRCADIAN & HABIT PROFILING -->
+            <section class="section-anchor" id="circadian">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🌙 Circadian & Habit Profile</div>
+                        <div class="section-desc">24-hour mental clock, weekday activity matrix, and longitudinal reflection shifts</div>
+                    </div>
+                    <div class="section-badge">Temporal Rhythms</div>
+                </div>
+
+                <!-- 1. 24h Distribution -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">⏰ 24-Hour Circadian Entry Distribution</div>
+                        <div class="chart-card-desc">Hourly entry density. Amber bars highlight late night reflections (10 PM – 4 AM).</div>
+                    </div>
+                    <div class="chart-card-body">
+                        {{ circadian_charts.hourly_distribution | safe }}
+                    </div>
+                </div>
+
+                <!-- 2. Weekly Heatmap -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">📅 Weekly Activity Rhythm (Day vs. Hour)</div>
+                        <div class="chart-card-desc">Density matrix of entries by day of week. Hover to see the top active topics during that slot.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        {{ circadian_charts.weekly_heatmap | safe }}
+                    </div>
+                </div>
+
+                <!-- 3. Longitudinal Shift -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">⏳ Longitudinal Circadian Shift</div>
+                        <div class="chart-card-desc">Percentage share of each month's reflections across hours, highlighting evolving sleep routines over the years.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        {{ circadian_charts.longitudinal_shift | safe }}
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: TAG & HOBBY LIFECYCLES -->
+            <section class="section-anchor" id="lifecycles">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🌊 Tag & Hobby Lifecycles</div>
+                        <div class="section-desc">Topic evolution, hyperfixation streams, and interest lifespan classifications</div>
+                    </div>
+                    <div class="section-badge">Topic Dynamics</div>
+                </div>
+
+                {% if lifecycle_charts %}
+                <!-- 1. Streamgraph -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">🌊 Interactive Hobby Streamgraph</div>
+                        <div class="chart-card-desc">Stacked area stream of top interests over time. Hover along the timeline to reveal the top 5 active topics for any month.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        {{ lifecycle_charts.streamgraph | safe }}
+                    </div>
+                </div>
+
+                <!-- 2. Ranked Bars -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">📊 Ranked Interest Volume</div>
+                        <div class="chart-card-desc">Total journal mentions matching signature stream colors. Hover to inspect category archetype and peak month.</div>
+                    </div>
+                    <div class="chart-card-body">
+                        {{ lifecycle_charts.ranked_bars | safe }}
+                    </div>
+                </div>
+
+                <!-- 3. Archetype Breakdown -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-card-title">🏷️ Lifespan Archetypes Breakdown</div>
+                        <div class="chart-card-desc">Classification of all tracked topics based on longevity and burst activity patterns.</div>
+                    </div>
+                    <div class="archetypes-grid">
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>🌟 Evergreen Passions</span>
+                                <span style="color: var(--accent-blue);">{{ evergreen_records | length }}</span>
+                            </div>
+                            {% for r in evergreen_records %}
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[{{ r.tag }}]</span>
+                                <span style="color: var(--text-secondary);">{{ r.total_count }} msgs</span>
+                            </div>
+                            {% else %}
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic;">None</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>⚡ Seasonal Bursts</span>
+                                <span style="color: var(--accent-orange);">{{ burst_records | length }}</span>
+                            </div>
+                            {% for r in burst_records %}
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[{{ r.tag }}]</span>
+                                <span style="color: var(--text-secondary);">{{ r.total_count }} msgs</span>
+                            </div>
+                            {% else %}
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic;">None</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="archetype-col">
+                            <div class="archetype-col-title">
+                                <span>🌱 Emerging Eras</span>
+                                <span style="color: var(--accent-green);">{{ emerging_records | length }}</span>
+                            </div>
+                            {% for r in emerging_records %}
+                            <div class="tag-row">
+                                <span style="font-weight: 600;">[{{ r.tag }}]</span>
+                                <span style="color: var(--text-secondary);">{{ r.total_count }} msgs</span>
+                            </div>
+                            {% else %}
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; font-style: italic;">None</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="chart-card" style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                    No bracket tags <code>[tag]</code> found meeting tracking thresholds.
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- SECTION 3: CHANNEL-WRAPPED RETROSPECTIVE HIGHLIGHTS -->
+            <section class="section-anchor" id="wrapped">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🎁 Channel-Wrapped Retrospective Highlights</div>
+                        <div class="section-desc">Milestones, personas, cadence streaks, standout moments, and emotional expressiveness</div>
+                    </div>
+                    <div class="section-badge">{{ wrapped.period_label }}</div>
+                </div>
+
+                <div class="wrapped-grid">
+                    <!-- Card 1: Persona -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🦉 Circadian Persona</span>
+                            <span style="font-size: 1.2rem;">{{ p.emoji }}</span>
+                        </div>
+                        <div class="story-tagline">"{{ p.tagline }}"</div>
+                        <ul class="story-list">
+                            <li class="story-item"><span class="story-label">Archetype:</span> <b>{{ p.name }}</b></li>
+                            <li class="story-item"><span class="story-label">Peak Reflection Hour:</span> <b>{{ p.peak_hour_formatted }}</b></li>
+                            <li class="story-item"><span class="story-label">Favorite Day:</span> <b>{{ wrapped.favorite_day_of_week }}</b> ({{ wrapped.favorite_day_count }} msgs)</li>
+                            <li class="story-item"><span class="story-label">Busiest Month:</span> <b>{{ wrapped.busiest_month }}</b> ({{ wrapped.busiest_month_count }} msgs)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2: Streaks & Hiatuses -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">⚡ Streaks & Consistency</span>
+                            <span style="color: var(--accent-orange); font-weight: 700;">{{ wrapped.longest_streak_days }} days</span>
+                        </div>
+                        <ul class="story-list">
+                            <li class="story-item"><span class="story-label">Longest Daily Streak:</span> <b>{{ wrapped.longest_streak_days }} days</b></li>
+                            {% if wrapped.longest_streak_start %}
+                            <li class="story-item"><span class="story-label">Streak Window:</span> <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ wrapped.longest_streak_start }} → {{ wrapped.longest_streak_end }}</span></li>
+                            {% endif %}
+                            <li class="story-item"><span class="story-label">Longest Hiatus:</span> <b>{{ wrapped.longest_gap_days }} days pause</b></li>
+                            {% if wrapped.longest_gap_start %}
+                            <li class="story-item"><span class="story-label">Hiatus Window:</span> <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ wrapped.longest_gap_start }} → {{ wrapped.longest_gap_end }}</span></li>
+                            {% endif %}
+                            <li class="story-item"><span class="story-label">Active Days:</span> <b>{{ wrapped.active_days }} / {{ wrapped.total_period_days }} ({{ wrapped.active_days_pct }}%)</b></li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3: Top Fixations & Companions -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🏷️ Fixations & Companions</span>
+                            <span style="color: var(--accent-purple);">{{ wrapped.top_tags | length }} topics</span>
+                        </div>
+                        <ul class="story-list">
+                            {% for tag, count, pct in wrapped.top_tags[:4] %}
+                            <li class="story-item">
+                                <span>#{{ loop.index }} <b>[{{ tag }}]</b></span>
+                                <span>{{ count }} msgs ({{ pct }}%)</span>
+                            </li>
+                            {% else %}
+                            <li style="color: var(--text-secondary); font-style: italic;">No tags detected</li>
+                            {% endfor %}
+                            {% if wrapped.top_tag_pairs %}
+                            <li style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                <b>Companion pairs:</b>
+                                {% for p1, p2, cnt in wrapped.top_tag_pairs[:2] %}
+                                <code>[{{ p1 }}] + [{{ p2 }}] ({{ cnt }}x)</code>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Card 4: Expressiveness & Media -->
+                    <div class="story-card">
+                        <div class="story-header">
+                            <span class="story-title">🎭 Expressiveness & Reactions</span>
+                            <span style="color: var(--accent-teal);">{{ wrapped.total_reactions | commas }} reacts</span>
+                        </div>
+                        <ul class="story-list">
+                            <li class="story-item">
+                                <span class="story-label">Top Reaction Emojis:</span>
+                                <span>{% for emoji, cnt in wrapped.top_reactions %}<b>{{ emoji }}</b> ({{ cnt }}) {% else %}None{% endfor %}</span>
+                            </li>
+                            <li class="story-item"><span class="story-label">Visual Archives:</span> <b>{{ wrapped.photo_count }} photos, {{ wrapped.media_count }} media</b></li>
+                            <li class="story-item"><span class="story-label">Thought Monologues:</span> <b>{{ wrapped.self_reply_count }} self-replies</b></li>
+                            {% if wrapped.most_reacted_count > 0 %}
+                            <li class="story-item"><span class="story-label">Top Reacted Entry:</span> <b>{{ wrapped.most_reacted_count }} reactions</b> ({{ rx_summary }})</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Card 5: The Magnum Opus -->
+                    {% if wrapped.magnum_opus_words > 0 %}
+                    <div class="story-card" style="grid-column: 1 / -1;">
+                        <div class="story-header">
+                            <span class="story-title">🏆 The Magnum Opus (Longest Reflection)</span>
+                            <span style="color: var(--accent-orange); font-weight: 700;">{{ wrapped.magnum_opus_words }} words</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.35rem;">
+                            Penned on {{ wrapped.magnum_opus_date }}
+                        </div>
+                        <div class="story-quote">
+                            "{{ wrapped.magnum_opus_snippet }}"
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- SECTION 4: ON THIS DAY TIME CAPSULE -->
+            <section class="section-anchor" id="otd">
+                <div class="section-header">
+                    <div>
+                        <div class="section-title">🕰️ On This Day Time Capsule</div>
+                        <div class="section-desc">
+                            Looking back across past years of memories for <b>{{ otd_result.date_title }}</b>
+                            {% if is_otd_fallback %} · <span style="color: var(--accent-orange); font-size: 0.8rem;">(Surprise Active Date)</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="section-badge">{{ otd_result.total_matches }} memories</div>
+                </div>
+
+                {% if otd_year_cards %}
+                    {% for card in otd_year_cards %}
+                    <div class="year-section">
+                        <div class="year-header">
+                            <span class="year-title">{{ card.label }}</span>
+                            <div>
+                                {% for tb in card.tag_badges %}
+                                <span class="tag-pill" style="background: {{ tb.color }};">#{{ tb.tag }} ({{ tb.count }})</span>
+                                {% endfor %}
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.4rem;">{{ card.total_messages }} msgs</span>
+                            </div>
+                        </div>
+                        <div class="messages-container">
+                            {% for entry in card.entries %}
+                            <div class="message-card">
+                                <div class="message-meta">
+                                    <span>{{ entry.time_icon }} {{ entry.time_str }}</span>
+                                    {% if entry.has_photo %}
+                                    <span style="color: var(--accent-orange); font-weight: 600;">📷 photo</span>
+                                    {% endif %}
+                                </div>
+                                <div style="font-size: 0.92rem; line-height: 1.45; color: #e6edf3; word-break: break-word;">
+                                    {{ entry.highlighted_text | safe }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="chart-card" style="padding: 2.5rem; text-align: center; color: var(--text-secondary);">
+                        🍃 No memories recorded on this calendar day across past years.
+                    </div>
+                {% endif %}
+            </section>
+        </main>
+
+        <footer>
+            Generated by <b>Telegram Journal Analytics</b> · Unified Master Dossier · 100% Offline & Private
+        </footer>
+    </div>
+</body>
+</html>

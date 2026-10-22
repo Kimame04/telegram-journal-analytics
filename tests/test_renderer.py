@@ -29,6 +29,7 @@ class TestRenderer(unittest.TestCase):
         self.assertTrue((TEMPLATES_DIR / "on_this_day.html").exists())
         self.assertTrue((TEMPLATES_DIR / "circadian.html").exists())
         self.assertTrue((TEMPLATES_DIR / "tag_lifecycle.html").exists())
+        self.assertTrue((TEMPLATES_DIR / "dashboard.html").exists())
 
     def test_jinja_filters(self):
         """Test custom filters for numbers and rounding."""

@@ -10,6 +10,7 @@ Interactive reports generated from a 400-message mock dataset. No server require
 
 | Module | Description | Live Demo | CLI Command |
 | :--- | :--- | :--- | :--- |
+| **Master Dossier** | All-in-one unified dashboard combining all 4 engines | [dashboard.html](demos/dashboard.html) | `python -m scripts.run_all` |
 | **Channel-Wrapped** | Annual & all-time Spotify Wrapped-style story deck | [wrapped.html](demos/wrapped.html) | `python -m scripts.run_wrapped` |
 | **On This Day (OTD)** | Multi-year personal flashback for matching calendar days | [on_this_day.html](demos/on_this_day.html) | `python -m scripts.run_otd` |
 | **Tag Lifecycles** | Streamgraph & lifespan categorization of bracket tags `[tag]` | [tag_lifecycle_report.html](demos/tag_lifecycle_report.html) | `python -m scripts.run_tag_lifecycles` |
@@ -19,7 +20,28 @@ Interactive reports generated from a 400-message mock dataset. No server require
 
 ## Features & Visuals
 
-### 1. Tag & Hobby Lifecycles
+### 1. Master Journal Dossier & Unified Dashboard
+An all-in-one standalone HTML intelligence dossier that aggregates every analytical engine into a single cohesive report with sticky section navigation:
+- **Hero KPI Grid:** Total messages, total words, book page equivalents, active consistency %, longest streak, peak hour, night-owl share, top interest, and circadian persona.
+- **Unified Visuals:** Seamlessly embeds the interactive Plotly streamgraph, 24-hour circadian curve, weekly rhythm heatmap, longitudinal shifts, and multi-year flashback cards.
+- **100% Offline & Private:** Single Plotly.js script in `<head>`, zero external tracking or font dependencies.
+
+```bash
+# Run everything and generate output/dashboard.html
+python -m scripts.run_all
+
+# Open directly in default web browser
+python -m scripts.run_all --open
+
+# Also output individual reports alongside the master dashboard
+python -m scripts.run_all --all-reports
+```
+
+👉 Explore the live demo: **[demos/dashboard.html](demos/dashboard.html)**
+
+---
+
+### 2. Tag & Hobby Lifecycles
 Extracts bracket tags (e.g. `[reading]`, `[fitness]`, `[f1]`) and classifies them into Evergreen passions, Seasonal bursts, and Emerging eras.
 
 ![Hobby Streamgraph](assets/tag_streamgraph.png)
@@ -30,7 +52,7 @@ Extracts bracket tags (e.g. `[reading]`, `[fitness]`, `[f1]`) and classifies the
 
 ---
 
-### 2. Circadian & Habit Heatmaps
+### 3. Circadian & Habit Heatmaps
 Analyzes message timestamps to determine natural reflection hours, peak day of the week, and schedule shifts over time.
 
 ![Weekly Heatmap](assets/circadian_weekly_heatmap.png)
@@ -41,7 +63,7 @@ Analyzes message timestamps to determine natural reflection hours, peak day of t
 
 ---
 
-### 3. On This Day (OTD) Time Capsule
+### 4. On This Day (OTD) Time Capsule
 Surfaces what you wrote on today's calendar date across previous years. Includes active spans, photo indicators, and compact formatting.
 
 ```text
@@ -66,7 +88,7 @@ $ python -m scripts.run_otd --date 09-15
 
 ---
 
-### 4. Channel-Wrapped Retrospective
+### 5. Channel-Wrapped Retrospective
 Spotify Wrapped-style retrospective highlighting your annual or all-time writing volume, book page metaphors, longest streaks, circadian personas (e.g. *The Midnight Philosopher*), top fixations, and standout memories.
 
 ```text
@@ -101,7 +123,10 @@ pip install -r requirements.txt
 # Generate 400 mock entries (Dec 2023 - Sep 2026)
 python -m scripts.generate_synthetic_export --output-dir "ChatExport_sample"
 
-# Run analytics against mock data
+# Run analytics against mock data (master dossier)
+python -m scripts.run_all --export-dir "ChatExport_sample"
+
+# Or run individual modules
 python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
 python -m scripts.run_otd --export-dir "ChatExport_sample"
 python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
@@ -112,6 +137,7 @@ python -m scripts.run_circadian --export-dir "ChatExport_sample"
 Export chat history in Telegram Desktop as HTML:
 ```bash
 # Place export in repo and point to it
+python -m scripts.run_all
 python -m scripts.run_otd --export-dir "path/to/ChatExport"
 python -m scripts.run_otd --date 04-20 --window 2
 python -m scripts.run_otd --random
@@ -127,12 +153,14 @@ python -m unittest discover tests
 
 ## Potential Future Features
 
-- **Channel-Wrapped:** An annual retrospective summary (Spotify Wrapped style) highlighting your top fixations, most active reflection months, night-owl streaks, and personal milestones.
 - **Telegram Bot Integration:** An automated companion bot that pushes daily "On This Day" flashback messages directly to your channel or DM, eliminating manual export steps.
 - **Concern & Anxiety Evolution:** Longitudinal tracking of worries, stressors, and emotional themes over time to see how past challenges evolved and resolved.
 - **"Ask Past You":** Semantic search and conversational Q&A (RAG) over your journal history to query what you thought or felt about specific topics in the past.
+- **Thought Chains & Self-Replies:** Tree visualization and latency analysis tracking how monologue threads and self-replies develop across weeks or months.
+- **Habit & Consistency Calendar Grid:** Full-year GitHub-style daily commit matrix showing journaling density and streak continuity.
 
 ---
+
 
 ## Caching
 

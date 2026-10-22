@@ -8,26 +8,33 @@ Transform raw Telegram chat export files (`messages.html`, `messages2.html`, etc
 
 ## Features
 
-### 1. 🕰️ "On This Day" (OTD) Flashback Engine
+### 1. 📊 Master Journal Dossier & Unified Dashboard
+An all-in-one standalone HTML intelligence dossier and orchestrator combining all analytical engines into a single cohesive report:
+- **Hero KPI Grid:** Total messages, total words, book page equivalents, active consistency %, longest streak, peak hour, night-owl share, top interest, and circadian persona.
+- **Unified Visuals:** Seamlessly embeds the interactive Plotly streamgraph, 24-hour circadian curve, weekly rhythm heatmap, longitudinal shifts, and multi-year flashback cards.
+- **Sticky Section Navigation:** Smoothly jump across Overview, Circadian, Lifecycles, Wrapped, and On This Day sections.
+- **100% Offline & Private:** Single Plotly.js script in `<head>`, zero external tracking or font dependencies.
+
+### 2. 🕰️ "On This Day" (OTD) Flashback Engine
 Surface thoughts, fixations, and memories recorded on the same calendar day across past years:
 - **Multi-Year Comparison:** See what you were doing today, 1 year ago, 2 years ago, etc., side-by-side.
 - **Compact Feed:** Clean, numbered CLI output with active time spans and tag highlights.
 - **Standalone HTML Memory Cards:** Beautiful, dark-mode, self-contained interactive web cards generated for each day.
 - **Flexible Discovery:** Query exact dates (`09-15`), fuzzy windows (`--window 2`), or rediscover active memories with `--random`.
 
-### 2. 🏷️ Tag & Hobby Lifecycles
+### 3. 🏷️ Tag & Hobby Lifecycles
 Track how interests, media fixations, projects, and creative outlets evolve over time using bracket tags (e.g. `[f1]`, `[mai]`, `[bumblebee]`):
 - **Hobby Streamgraph:** Interactive Plotly streamgraph ranking interests by volume with stream-synchronized hover cards.
 - **Interest Lifespans (Gantt View):** Categorizes topics into **Evergreen Passions**, **Seasonal Bursts**, and **Emerging Eras** with peak activity markers.
 - **Turnover Matrix:** Heatmap showing how thematic anchors shift across phases of life.
 
-### 3. 🌙 Circadian & Habit Profiling
+### 4. 🌙 Circadian & Habit Profiling
 Understand your biological and psychological rhythms:
 - **24-Hour Circadian Profile:** Hourly message distribution highlighting your peak reflection window and night-owl share.
 - **Weekly Rhythm Heatmap:** Day-of-week vs. hour-of-day activity matrix revealing peak journaling blocks.
 - **Longitudinal Circadian Shift:** Year-over-year visualization demonstrating how daily schedules, wake-up times, and late-night habits evolved over time.
 
-### 4. 🎁 Channel-Wrapped Retrospective
+### 5. 🎁 Channel-Wrapped Retrospective
 An annual and all-time retrospective summary ("Spotify Wrapped" style):
 - **6-Slide Story Deck:** Volume & book-page equivalents, consecutive streaks & hiatuses, circadian personas (e.g. *The Midnight Philosopher*, *The Dawn Chronicler*), top tag eras, reaction footprint, and magnum opus standout reflections.
 - **Interactive Dark-Mode Web Deck:** Pure CSS glassmorphism, responsive story progress bars, and keyboard arrow navigation with toggleable scrollable mode.
@@ -40,33 +47,46 @@ An annual and all-time retrospective summary ("Spotify Wrapped" style):
 ```
 telegram-journal-analytics/
 ├── src/
-│   ├── parser.py       # Universal Telegram HTML parser & Parquet cache engine
-│   ├── circadian.py    # Circadian distribution & longitudinal habit models
-│   ├── lifecycle.py    # Tag extraction, streamgraph & lifespan categorization
-│   ├── otd.py          # On This Day query engine & memory models
-│   ├── wrapped.py      # Annual & all-time retrospective analytics engine
-│   └── renderer.py     # Centralized Jinja2 template loader & render engine
-├── templates/          # Standalone, decoupled HTML/CSS/JS presentation templates
-│   ├── wrapped.html    # Spotify Wrapped-style interactive story deck
-│   └── on_this_day.html# Dark-mode On This Day multi-year memory cards
+│   ├── parser.py          # Universal Telegram HTML parser & Parquet cache engine
+│   ├── circadian/         # Circadian distribution & longitudinal habit models
+│   │   ├── logic.py       # Pure domain metrics (0 plotting dependencies)
+│   │   └── visual.py      # Plotly dark-mode & Matplotlib visual generators
+│   ├── lifecycle/         # Tag extraction, streamgraph & lifespan categorization
+│   │   ├── logic.py       # Tag counts, active spans, turnover matrix
+│   │   └── visual.py      # Streamgraphs & lifespan Gantt charts
+│   ├── otd/               # On This Day query engine & memory models
+│   │   ├── logic.py       # Calendar queries, windowing, random lookup
+│   │   └── visual.py      # Terminal formatting & HTML memory card preparation
+│   ├── wrapped/           # Annual & all-time retrospective analytics engine
+│   │   ├── logic.py       # KPIs, reading metaphors, personas, fixations
+│   │   └── visual.py      # Terminal retrospective deck & HTML story deck
+│   ├── dashboard/         # Master unified dashboard aggregator & visuals
+│   │   ├── logic.py       # Cross-domain aggregation & OTD fallback logic
+│   │   └── visual.py      # Plotly chart embedding & dashboard rendering
+│   └── renderer.py        # Centralized Jinja2 template loader & render engine
+├── templates/             # Standalone, decoupled HTML/CSS/JS presentation templates
+│   ├── dashboard.html     # All-in-one Master Dossier dark-mode dashboard
+│   ├── wrapped.html       # Spotify Wrapped-style interactive story deck
+│   ├── on_this_day.html   # Dark-mode On This Day multi-year memory cards
+│   ├── circadian.html     # Circadian & habit HTML dashboard
+│   └── tag_lifecycle.html # Streamgraph & tag lifespan HTML dashboard
 ├── scripts/
-│   ├── run_circadian.py       # CLI runner for Circadian analytics
-│   ├── run_tag_lifecycles.py  # CLI runner for Tag & Hobby lifecycles
-│   ├── run_otd.py             # CLI runner for On This Day flashback
-│   └── run_wrapped.py         # CLI runner for Channel-Wrapped retrospective
+│   ├── run_all.py            # Master CLI runner for unified dashboard & all reports
+│   ├── run_circadian.py      # CLI runner for Circadian analytics
+│   ├── run_tag_lifecycles.py # CLI runner for Tag & Hobby lifecycles
+│   ├── run_otd.py            # CLI runner for On This Day flashback
+│   ├── run_wrapped.py        # CLI runner for Channel-Wrapped retrospective
+│   └── generate_synthetic_export.py # Authentic mock Telegram export generator
 ├── tests/
 │   ├── test_parser_and_circadian.py
 │   ├── test_lifecycle.py
 │   ├── test_otd.py
 │   ├── test_wrapped.py
+│   ├── test_dashboard.py
 │   └── test_renderer.py
-├── output/             # Generated interactive HTML dashboards and PNG charts
-│   ├── circadian/
-│   ├── lifecycles/
-│   ├── otd/
-│   └── wrapped/
-├── environment.yml     # Conda environment definition
-├── requirements.txt    # Pip dependencies
+├── output/                # Generated interactive HTML dashboards and PNG charts
+├── environment.yml        # Conda environment definition
+├── requirements.txt       # Pip dependencies
 └── README.md
 ```
 
@@ -112,7 +132,23 @@ This generates mock entries with realistic circadian curves, interest lifecycles
 
 ## Usage & CLI Examples
 
-### 1. Run "On This Day" (OTD)
+### 1. Run Master Journal Dossier (All-in-One)
+Run all 4 analytics modules in a single sub-second pass and generate the unified master dashboard:
+```bash
+# Generate unified dashboard in output/dashboard.html
+python -m scripts.run_all
+
+# Open directly in default web browser upon completion
+python -m scripts.run_all --open
+
+# Also output individual reports (circadian, lifecycle, wrapped, OTD)
+python -m scripts.run_all --all-reports
+
+# Run against synthetic demo dataset
+python -m scripts.run_all --export-dir "ChatExport_sample"
+```
+
+### 2. Run "On This Day" (OTD)
 ```bash
 # Flashback for today's date
 python -m scripts.run_otd
@@ -132,17 +168,17 @@ python -m scripts.run_otd --random
 python -m scripts.run_otd --export-dir "ChatExport_sample" --date 09-15
 ```
 
-### 2. Run Tag & Hobby Lifecycles
+### 3. Run Tag & Hobby Lifecycles
 ```bash
 python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
 ```
 
-### 3. Run Circadian & Habit Heatmaps
+### 4. Run Circadian & Habit Heatmaps
 ```bash
 python -m scripts.run_circadian --export-dir "ChatExport_sample"
 ```
 
-### 4. Run Channel-Wrapped Retrospective
+### 5. Run Channel-Wrapped Retrospective
 ```bash
 # Retrospective for the latest active year (e.g. 2024)
 python -m scripts.run_wrapped
