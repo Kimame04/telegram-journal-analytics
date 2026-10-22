@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel-Wrapped · {{ data.period_label }}</title>
+    <style>
+        :root {
+            --bg-base: #090d16;
+            --bg-card: rgba(22, 27, 46, 0.75);
+            --bg-card-border: rgba(255, 255, 255, 0.12);
+            --accent-purple: #9d4edd;
+            --accent-violet: #7928ca;
+            --accent-blue: #3a86ff;
+            --accent-cyan: #00f5d4;
+            --accent-pink: #ff007f;
+            --accent-amber: #ffbe0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-faint: #64748b;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(121, 40, 202, 0.25) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(58, 134, 255, 0.22) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 127, 0.12) 0%, transparent 60%);
+            min-height: 100vh;
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            overflow-x: hidden;
+        }
+        .wrapped-wrapper {
+            width: 100%;
+            max-width: 580px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* Story Progress Bar */
+        .story-bars {
+            width: 100%;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 1rem;
+        }
+        .story-segment {
+            height: 4px;
+            flex: 1;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+        .story-segment.active {
+            background: var(--text-main);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        }
+        .story-segment.seen {
+            background: rgba(255, 255, 255, 0.6);
+        }
+        /* Main Slide Card */
+        .deck-container {
+            width: 100%;
+            position: relative;
+            min-height: 560px;
+        }
+        .slide {
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 24px;
+            padding: 2.25rem 2rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 30px -10px rgba(121, 40, 202, 0.3);
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 560px;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .slide.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        /* Slide Header */
+        .slide-header {
+            margin-bottom: 1.5rem;
+        }
+        .pill-tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            color: var(--accent-cyan);
+            background: rgba(0, 245, 212, 0.1);
+            border: 1px solid rgba(0, 245, 212, 0.25);
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 0.75rem;
+        }
+        .slide-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+        .slide-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+        /* Big Stat Callout */
+        .stat-giant {
+            text-align: center;
+            margin: 1.25rem 0;
+        }
+        .stat-giant-num {
+            font-size: 3.4rem;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 60%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-giant-label {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-top: 0.4rem;
+            font-weight: 600;
+        }
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin: 1rem 0;
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 0.9rem 1rem;
+        }
+        .metric-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+        .metric-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        /* Metaphor Box */
+        .metaphor-box {
+            background: linear-gradient(135deg, rgba(121, 40, 202, 0.15), rgba(58, 134, 255, 0.15));
+            border: 1px solid rgba(121, 40, 202, 0.3);
+            border-radius: 14px;
+            padding: 1rem 1.15rem;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: #e2e8f0;
+        }
+        .metaphor-box strong {
+            color: var(--accent-cyan);
+        }
+        /* Persona Slide */
+        .persona-badge-wrap {
+            text-align: center;
+            margin: 1.25rem 0 1rem;
+        }
+        .persona-emoji {
+            font-size: 4rem;
+            line-height: 1;
+            filter: drop-shadow(0 0 20px rgba(157, 78, 221, 0.6));
+        }
+        .persona-name {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-top: 0.5rem;
+            background: linear-gradient(135deg, #ffbe0b 0%, #ff007f 70%, #9d4edd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .persona-tagline {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 0.4rem;
+            line-height: 1.4;
+            max-width: 440px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Tag Bars */
+        .tag-row {
+            margin-bottom: 0.85rem;
+        }
+        .tag-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.84rem;
+            margin-bottom: 0.3rem;
+        }
+        .tag-rank {
+            font-weight: 800;
+            color: var(--accent-pink);
+            margin-right: 6px;
+        }
+        .tag-name {
+            font-weight: 700;
+            color: #ffffff;
+            flex: 1;
+        }
+        .tag-count {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+        .tag-bar-track {
+            height: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .tag-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+        }
+        .companions-box {
+            margin-top: 1rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .companions-label {
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.4rem;
+        }
+        .chips-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+        .chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+        }
+        .chip em {
+            color: var(--accent-cyan);
+            font-style: normal;
+        }
+        /* Reactions Row */
+        .rx-chips-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.6rem;
+        }
+        .rx-chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            padding: 4px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rx-emoji {
+            font-size: 1.1rem;
+        }
+        .rx-count {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        /* Highlight Cards */
+        .highlight-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.95rem 1.1rem;
+        }
+        .highlight-badge {
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: var(--accent-amber);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .highlight-date {
+            font-size: 0.76rem;
+            color: var(--text-faint);
+            margin-top: 2px;
+        }
+        .highlight-snippet {
+            font-size: 0.88rem;
+            font-style: italic;
+            color: #e2e8f0;
+            line-height: 1.45;
+            margin-top: 0.5rem;
+        }
+        /* Footer Navigation Controls */
+        .deck-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1.25rem;
+            width: 100%;
+        }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-1px);
+        }
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slide-counter {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        /* Mode switch (Story vs All Cards) */
+        .mode-toggle {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            background: none;
+            border: none;
+        }
+        .mode-toggle:hover {
+            color: var(--text-main);
+        }
+        /* Grid view class */
+        .deck-container.grid-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .deck-container.grid-mode .slide {
+            display: flex !important;
+            min-height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapped-wrapper">
+        <!-- Story Progress Bars -->
+        <div class="story-bars" id="storyBars">
+            <div class="story-segment active" onclick="goToSlide(0)"></div>
+            <div class="story-segment" onclick="goToSlide(1)"></div>
+            <div class="story-segment" onclick="goToSlide(2)"></div>
+            <div class="story-segment" onclick="goToSlide(3)"></div>
+            <div class="story-segment" onclick="goToSlide(4)"></div>
+            <div class="story-segment" onclick="goToSlide(5)"></div>
+        </div>
+
+        <!-- Slide Deck Container -->
+        <div class="deck-container" id="deckContainer">
+            <!-- SLIDE 1: Volume & Dedication -->
+            <div class="slide active">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 01 · Dedication</span>
+                    <h2 class="slide-title">Your Year in Words</h2>
+                    <p class="slide-subtitle">The thoughts and memories you committed to ink in {{ data.period_label }}.</p>
+                </div>
+                
+                <div class="stat-giant">
+                    <div class="stat-giant-num">{{ data.total_words | commas }}</div>
+                    <div class="stat-giant-label">Total Words Written</div>
+                </div>
+
+                <div class="metaphor-box">
+                    That is equivalent to roughly <strong>{{ data.book_pages_equivalent | round_num(1) }} pages of a book</strong>, taking approximately <strong>{{ data.reading_time_minutes }} minutes</strong> to read cover-to-cover.
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.total_messages | commas }}</div>
+                        <div class="metric-lbl">Total Entries</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.active_days }}/{{ data.total_period_days }}</div>
+                        <div class="metric-lbl">Active Days ({{ data.active_days_pct }}%)</div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
+                    Busiest reflection day: <strong>{{ data.busiest_date }}</strong> ({{ data.busiest_date_count }} entries)
+                </div>
+            </div>
+
+            <!-- SLIDE 2: Cadence & Consistency -->
+            <div class="slide">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 02 · Rhythm</span>
+                    <h2 class="slide-title">Streaks & Pauses</h2>
+                    <p class="slide-subtitle">Finding your stride across months, weekdays, and seasons.</p>
+                </div>
+
+                <div class="stat-giant">
+                    <div class="stat-giant-num">{{ data.longest_streak_days }}</div>
+                    <div class="stat-giant-label">Day Longest Consecutive Streak</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.busiest_month }}</div>
+                        <div class="metric-lbl">Prime Month ({{ data.busiest_month_count }} msgs)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.favorite_day_of_week }}</div>
+                        <div class="metric-lbl">Favorite Weekday ({{ data.favorite_day_count }} msgs)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.avg_words_per_message | round_num(0) }} words</div>
+                        <div class="metric-lbl">Avg Words / Entry</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.longest_gap_days }} days</div>
+                        <div class="metric-lbl">Longest Hiatus</div>
+                    </div>
+                </div>
+
+                <div class="metaphor-box">
+                    {% if data.longest_streak_days > 1 %}
+                    Your longest uninterrupted streak ran from <strong>{{ data.longest_streak_start }}</strong> to <strong>{{ data.longest_streak_end }}</strong>.
+                    {% else %}
+                    Every single entry was a thoughtful, deliberate milestone.
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- SLIDE 3: Circadian Persona -->
+            <div class="slide">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 03 · Alter-Ego</span>
+                    <h2 class="slide-title">Your Journaling Persona</h2>
+                    <p class="slide-subtitle">When your mind is most alive to reflect and write.</p>
+                </div>
+
+                <div class="persona-badge-wrap">
+                    <div class="persona-emoji">{{ p.emoji }}</div>
+                    <div class="persona-name">{{ p.name }}</div>
+                    <div class="persona-tagline">"{{ p.tagline }}"</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">{{ p.peak_hour_formatted }}</div>
+                        <div class="metric-lbl">Peak Hour</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ p.night_owl_pct }}%</div>
+                        <div class="metric-lbl">Night Owl Share</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ p.morning_pct }}%</div>
+                        <div class="metric-lbl">Dawn Share</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ p.peak_day }}</div>
+                        <div class="metric-lbl">Peak Rhythm Day</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 4: Top Fixations & Tag Eras -->
+            <div class="slide">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 04 · Fixations</span>
+                    <h2 class="slide-title">Top Topics & Eras</h2>
+                    <p class="slide-subtitle">The passions, hobbies, and ideas that took center stage.</p>
+                </div>
+
+                <div class="tag-bars-container">
+                    {% if data.top_tags %}
+                        {% set max_count = data.top_tags[0][1] if data.top_tags[0][1] > 0 else 1 %}
+                        {% for tag, count, pct in data.top_tags %}
+                            {% set bar_w = ((count / max_count) * 100) | int %}
+                            <div class="tag-row">
+                                <div class="tag-meta">
+                                    <span class="tag-rank">#{{ loop.index }}</span>
+                                    <span class="tag-name">[{{ tag }}]</span>
+                                    <span class="tag-count">{{ count }} mentions ({{ pct }}%)</span>
+                                </div>
+                                <div class="tag-bar-track">
+                                    <div class="tag-bar-fill" style="width: {{ bar_w }}%;"></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty-note">No bracket tags recorded during this period.</p>
+                    {% endif %}
+                </div>
+
+                {% if data.top_tag_pairs %}
+                <div class="companions-box">
+                    <span class="companions-label">Favorite Companions:</span>
+                    <div class="chips-wrap">
+                        {% for p1, p2, cnt in data.top_tag_pairs %}
+                        <span class="chip">[{{ p1 }}] + [{{ p2 }}] <em>({{ cnt }}x)</em></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- SLIDE 5: Expressiveness & Reactions -->
+            <div class="slide">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 05 · Resonance</span>
+                    <h2 class="slide-title">Expressiveness & Media</h2>
+                    <p class="slide-subtitle">Capturing moments with imagery, reactions, and follow-ups.</p>
+                </div>
+
+                <div class="stat-giant">
+                    <div class="stat-giant-num">{{ data.total_reactions | commas }}</div>
+                    <div class="stat-giant-label">Total Reactions Recorded</div>
+                </div>
+
+                {% if data.top_reactions %}
+                <div class="rx-chips-row">
+                    {% for em, cnt in data.top_reactions %}
+                    <span class="rx-chip"><span class="rx-emoji">{{ em }}</span> <span class="rx-count">{{ cnt }}</span></span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="metrics-grid" style="margin-top: 1.25rem;">
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.photo_count }} photos</div>
+                        <div class="metric-lbl">Visual Snaps</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{ data.self_reply_count }} threads</div>
+                        <div class="metric-lbl">Thought Continuations</div>
+                    </div>
+                </div>
+
+                <div class="metaphor-box">
+                    You replied to your past entries <strong>{{ data.self_reply_count }} times</strong>, keeping ongoing conversations alive with your past thoughts.
+                </div>
+            </div>
+
+            <!-- SLIDE 6: The Magnum Opus & Standouts -->
+            <div class="slide">
+                <div class="slide-header">
+                    <span class="pill-tag">Chapter 06 · Milestones</span>
+                    <h2 class="slide-title">Standout Memories</h2>
+                    <p class="slide-subtitle">The reflections that defined {{ data.period_label }}.</p>
+                </div>
+
+                {% if data.magnum_opus_words > 0 %}
+                <div class="highlight-card">
+                    <div class="highlight-badge">🏆 Longest Reflection · {{ data.magnum_opus_words | commas }} words</div>
+                    <div class="highlight-date">{{ data.magnum_opus_date }}</div>
+                    <div class="highlight-snippet">"{{ data.magnum_opus_snippet }}"</div>
+                </div>
+                {% endif %}
+
+                {% if data.most_reacted_count > 0 %}
+                <div class="highlight-card" style="margin-top: 1rem;">
+                    <div class="highlight-badge">💖 Most Resonating · {{ data.most_reacted_count }} reactions ({{ rx_summary }})</div>
+                    <div class="highlight-date">{{ data.most_reacted_date }}</div>
+                    <div class="highlight-snippet">"{{ data.most_reacted_snippet }}"</div>
+                </div>
+                {% endif %}
+
+                <div style="text-align: center; margin-top: 1.2rem; font-size: 0.82rem; color: var(--text-muted);">
+                    Generated with <strong>Telegram Journal Analytics</strong> · Privacy First & Offline
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Footer -->
+        <div class="deck-footer" id="deckFooter">
+            <button class="nav-btn" id="prevBtn" onclick="prevSlide()" disabled>← Prev</button>
+            <span class="slide-counter" id="slideCounter">1 / 6</span>
+            <button class="nav-btn" id="nextBtn" onclick="nextSlide()">Next →</button>
+        </div>
+
+        <!-- View Mode Switch -->
+        <button class="mode-toggle" id="modeToggle" onclick="toggleViewMode()">Switch to Scrollable Deck Mode</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const totalSlides = 6;
+        const slides = document.querySelectorAll('.slide');
+        const segments = document.querySelectorAll('.story-segment');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const counter = document.getElementById('slideCounter');
+        const deckContainer = document.getElementById('deckContainer');
+        const deckFooter = document.getElementById('deckFooter');
+        const storyBars = document.getElementById('storyBars');
+        const modeToggle = document.getElementById('modeToggle');
+        let isGridMode = false;
+
+        function updateSlide() {
+            slides.forEach((s, idx) => {
+                s.classList.toggle('active', idx === currentSlide);
+            });
+            segments.forEach((seg, idx) => {
+                seg.classList.remove('active', 'seen');
+                if (idx === currentSlide) {
+                    seg.classList.add('active');
+                } else if (idx < currentSlide) {
+                    seg.classList.add('seen');
+                }
+            });
+            counter.innerText = (currentSlide + 1) + " / " + totalSlides;
+            prevBtn.disabled = (currentSlide === 0);
+            nextBtn.disabled = (currentSlide === totalSlides - 1);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 0 && n < totalSlides) {
+                currentSlide = n;
+                updateSlide();
+            }
+        }
+
+        function toggleViewMode() {
+            isGridMode = !isGridMode;
+            deckContainer.classList.toggle('grid-mode', isGridMode);
+            deckFooter.style.display = isGridMode ? 'none' : 'flex';
+            storyBars.style.display = isGridMode ? 'none' : 'flex';
+            modeToggle.innerText = isGridMode ? 'Switch to Story Card Mode' : 'Switch to Scrollable Deck Mode';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (isGridMode) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+    </script>
+</body>
+</html>

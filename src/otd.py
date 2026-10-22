@@ -279,22 +279,21 @@ def generate_otd_html(
 ) -> Path:
     """
     Generate an interactive, standalone HTML card showcasing past memories for this day.
+    Decoupled via Jinja2 template.
     """
-    out_file = Path(output_path).expanduser().resolve()
-    out_file.parent.mkdir(parents=True, exist_ok=True)
+    from src.renderer import render_to_file
 
+    out_file = Path(output_path).expanduser().resolve()
     tag_to_color = {t: TAG_PALETTE[i % len(TAG_PALETTE)] for i, t in enumerate(result.all_tags)}
 
-    year_cards_html = []
+    year_cards = []
     for g in result.year_groups:
-        tag_badges = "".join(
-            [
-                f"<span class='tag-pill' style='background:{tag_to_color.get(t, '#444')};'>#{t} ({cnt})</span>"
-                for t, cnt in g.tags_summary
-            ]
-        )
+        tag_badges = [
+            {"tag": t, "count": cnt, "color": tag_to_color.get(t, "#444")}
+            for t, cnt in g.tags_summary
+        ]
 
-        entries_html = []
+        entries_data = []
         for e in g.entries:
             text_clean = e.text.strip()
             highlighted_text = html.escape(text_clean)
@@ -310,276 +309,24 @@ def generate_otd_html(
             highlighted_text = highlighted_text.replace("\n", "<br>")
             time_icon = "🌙" if e.timestamp.hour >= 22 or e.timestamp.hour < 5 else "☀️"
 
-            entries_html.append(
-                f"""
-                <div class="message-card">
-                    <div class="message-meta">
-                        <span class="time-badge">{time_icon} {e.time_str}</span>
-                        {f"<span class='media-badge'>📷 photo</span>" if e.has_photo else ""}
-                    </div>
-                    <div class="message-body">
-                        {highlighted_text if highlighted_text else "<i>(media attachment)</i>"}
-                    </div>
-                </div>
-                """
-            )
+            entries_data.append({
+                "time_icon": time_icon,
+                "time_str": e.time_str,
+                "has_photo": e.has_photo,
+                "highlighted_text": highlighted_text if highlighted_text else "<i>(media attachment)</i>",
+            })
 
-        year_cards_html.append(
-            f"""
-            <div class="year-section">
-                <div class="year-header">
-                    <div class="year-title-row">
-                        <span class="year-title">{g.label}</span>
-                        <span class="year-stats-badge">{g.total_messages} messages</span>
-                    </div>
-                    {f"<div class='year-summary-row'><div class='tag-badges-container'>{tag_badges}</div></div>" if tag_badges else ""}
-                </div>
-                <div class="messages-container">
-                    {"".join(entries_html)}
-                </div>
-            </div>
-            """
-        )
+        year_cards.append({
+            "label": g.label,
+            "total_messages": g.total_messages,
+            "tag_badges": tag_badges,
+            "entries": entries_data,
+        })
 
-    content_body = "".join(year_cards_html) if year_cards_html else """
-    <div class="empty-state">
-        <div class="empty-icon">🍃</div>
-        <h2>No memories found for this calendar day</h2>
-        <p>Try expanding the day window (e.g. <code>--window 2</code>) or query a different date.</p>
-    </div>
-    """
+    context = {
+        "result": result,
+        "total_years_active": len(result.year_groups),
+        "year_cards": year_cards,
+    }
+    return render_to_file("on_this_day.html", context, out_file)
 
-    total_years_active = len(result.year_groups)
-
-    html_template = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>On This Day: {result.date_title}</title>
-    <style>
-        :root {{
-            --bg-color: #0d1117;
-            --surface-color: #161b22;
-            --surface-border: #30363d;
-            --text-primary: #f0f6fc;
-            --text-secondary: #8b949e;
-            --accent-blue: #58a6ff;
-            --accent-green: #3fb950;
-            --accent-orange: #d29922;
-        }}
-        * {{
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            padding: 1.5rem 1rem;
-            line-height: 1.45;
-        }}
-        .container {{
-            max-width: 900px;
-            margin: 0 auto;
-        }}
-        header {{
-            text-align: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--surface-border);
-        }}
-        .super-title {{
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--accent-blue);
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }}
-        h1 {{
-            font-size: 1.85rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: #ffffff;
-            margin-bottom: 0.35rem;
-        }}
-        .subtitle {{
-            color: var(--text-secondary);
-            font-size: 0.92rem;
-        }}
-        .overview-stats {{
-            display: flex;
-            justify-content: center;
-            gap: 1.2rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }}
-        .stat-box {{
-            background: var(--surface-color);
-            border: 1px solid var(--surface-border);
-            border-radius: 6px;
-            padding: 0.4rem 1.2rem;
-            text-align: center;
-            min-width: 110px;
-        }}
-        .stat-value {{
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #ffffff;
-        }}
-        .stat-label {{
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            letter-spacing: 0.8px;
-        }}
-        .year-section {{
-            background: var(--surface-color);
-            border: 1px solid var(--surface-border);
-            border-radius: 10px;
-            margin-bottom: 1.25rem;
-            overflow: hidden;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
-        }}
-        .year-header {{
-            padding: 0.7rem 1.1rem;
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--surface-border);
-        }}
-        .year-title-row {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.35rem;
-        }}
-        .year-title {{
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #ffffff;
-        }}
-        .year-stats-badge {{
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.05);
-            padding: 0.2rem 0.55rem;
-            border-radius: 16px;
-        }}
-        .year-summary-row {{
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-        }}
-        .tag-pill {{
-            display: inline-block;
-            color: #ffffff;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 0.15rem 0.45rem;
-            border-radius: 10px;
-            margin-right: 0.3rem;
-            margin-bottom: 0.2rem;
-        }}
-        .messages-container {{
-            padding: 0.7rem 1.1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.45rem;
-        }}
-        .message-card {{
-            background: rgba(255, 255, 255, 0.025);
-            border-left: 3px solid var(--accent-blue);
-            border-radius: 0 6px 6px 0;
-            padding: 0.55rem 0.85rem;
-            transition: background 0.15s ease;
-        }}
-        .message-card:hover {{
-            background: rgba(255, 255, 255, 0.045);
-        }}
-        .message-meta {{
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-        }}
-        .time-badge {{
-            font-weight: 600;
-            color: #ffffff;
-        }}
-        .media-badge {{
-            color: var(--accent-orange);
-            font-weight: 600;
-        }}
-        .message-body {{
-            font-size: 0.92rem;
-            line-height: 1.45;
-            color: #e6edf3;
-            word-break: break-word;
-        }}
-        .entry-tag {{
-            display: inline-block;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #ffffff;
-            padding: 0.08rem 0.4rem;
-            border-radius: 4px;
-            margin: 0 0.15rem;
-        }}
-        .empty-state {{
-            text-align: center;
-            padding: 3rem 1.5rem;
-            background: var(--surface-color);
-            border: 1px dashed var(--surface-border);
-            border-radius: 10px;
-        }}
-        .empty-icon {{
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-        }}
-        footer {{
-            text-align: center;
-            margin-top: 2rem;
-            padding-bottom: 1rem;
-            color: var(--text-secondary);
-            font-size: 0.78rem;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="super-title">Telegram Journal Time Capsule</div>
-            <h1>On This Day: {result.date_title}</h1>
-            <div class="subtitle">Looking back across past years of thoughts, fixations, and daily life</div>
-            <div class="overview-stats">
-                <div class="stat-box">
-                    <div class="stat-value">{result.total_matches}</div>
-                    <div class="stat-label">Total Messages</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value">{total_years_active}</div>
-                    <div class="stat-label">Years Recorded</div>
-                </div>
-            </div>
-        </header>
-
-        <main>
-            {content_body}
-        </main>
-
-        <footer>
-            Generated by <b>Telegram Journal Analytics</b> · Decoupled universal parser
-        </footer>
-    </div>
-</body>
-</html>
-"""
-
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write(html_template)
-
-    return out_file

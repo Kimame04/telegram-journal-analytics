@@ -43,8 +43,12 @@ telegram-journal-analytics/
 │   ├── parser.py       # Universal Telegram HTML parser & Parquet cache engine
 │   ├── circadian.py    # Circadian distribution & longitudinal habit models
 │   ├── lifecycle.py    # Tag extraction, streamgraph & lifespan categorization
-│   ├── otd.py          # On This Day query engine & HTML memory card generator
-│   └── wrapped.py      # Annual & all-time retrospective story deck engine
+│   ├── otd.py          # On This Day query engine & memory models
+│   ├── wrapped.py      # Annual & all-time retrospective analytics engine
+│   └── renderer.py     # Centralized Jinja2 template loader & render engine
+├── templates/          # Standalone, decoupled HTML/CSS/JS presentation templates
+│   ├── wrapped.html    # Spotify Wrapped-style interactive story deck
+│   └── on_this_day.html# Dark-mode On This Day multi-year memory cards
 ├── scripts/
 │   ├── run_circadian.py       # CLI runner for Circadian analytics
 │   ├── run_tag_lifecycles.py  # CLI runner for Tag & Hobby lifecycles
@@ -54,7 +58,8 @@ telegram-journal-analytics/
 │   ├── test_parser_and_circadian.py
 │   ├── test_lifecycle.py
 │   ├── test_otd.py
-│   └── test_wrapped.py
+│   ├── test_wrapped.py
+│   └── test_renderer.py
 ├── output/             # Generated interactive HTML dashboards and PNG charts
 │   ├── circadian/
 │   ├── lifecycles/
