@@ -1,23 +1,19 @@
 """
-On This Day (OTD) Module.
+On This Day (OTD) - Pure Domain Logic.
 
-Surfaces journal memories and thoughts posted on the same calendar day across past years.
-Includes multi-year aggregation, fuzzy date windowing, random memory discovery,
-and interactive HTML memory card generation.
+Surfaces journal memories and reflections posted on matching calendar days across all recorded years.
+Includes multi-year aggregation, date range windowing, and random memory discovery.
+Zero dependencies on HTML templates or CSS rendering.
 """
 
 from __future__ import annotations
 
-import html
-import random
 from dataclasses import dataclass
 from datetime import datetime, date
-from pathlib import Path
+import random
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-
-from src.lifecycle import TAG_PALETTE
 
 
 @dataclass
@@ -81,7 +77,6 @@ def parse_query_date(date_str: Optional[str] = None) -> Tuple[int, int]:
         yest = date.fromordinal(today.toordinal() - 1)
         return yest.month, yest.day
 
-    # Try standard ISO formats
     for fmt in ("%Y-%m-%d", "%m-%d", "%d/%m", "%m/%d", "%B %d", "%b %d", "%d %B", "%d %b"):
         try:
             dt = datetime.strptime(s, fmt)
@@ -89,18 +84,14 @@ def parse_query_date(date_str: Optional[str] = None) -> Tuple[int, int]:
         except ValueError:
             pass
 
-    # Try splitting by - or /
     parts = [p for p in s.replace("/", "-").split("-") if p]
     if len(parts) >= 2:
         try:
-            # If 3 parts (YYYY-MM-DD), take parts 1 and 2
             if len(parts) == 3 and len(parts[0]) == 4:
                 return int(parts[1]), int(parts[2])
-            # If 2 parts, assume MM-DD
             m, d = int(parts[0]), int(parts[1])
             if 1 <= m <= 12 and 1 <= d <= 31:
                 return m, d
-            # Maybe DD-MM
             if 1 <= d <= 12 and 1 <= m <= 31:
                 return d, m
         except ValueError:
@@ -124,7 +115,6 @@ def query_on_this_day(
         date_title = datetime(2024, month, day).strftime("%B %d")
     except ValueError:
         date_title = f"{month:02d}-{day:02d}"
-        # Invalid calendar date
         return OTDResult(
             target_month=month,
             target_day=day,
@@ -148,7 +138,6 @@ def query_on_this_day(
 
     ref_year = reference_year or datetime.now().year
 
-    # Filter by calendar date or window
     if window_days <= 0:
         mask = (df["month"] == month) & (df["day"] == day)
     else:
@@ -271,62 +260,3 @@ def get_random_active_day(df: pd.DataFrame, min_msgs: int = 3) -> Tuple[int, int
 
     choice = random.choice(valid_days)
     return int(choice[0]), int(choice[1])
-
-
-def generate_otd_html(
-    result: OTDResult,
-    output_path: Path | str,
-) -> Path:
-    """
-    Generate an interactive, standalone HTML card showcasing past memories for this day.
-    Decoupled via Jinja2 template.
-    """
-    from src.renderer import render_to_file
-
-    out_file = Path(output_path).expanduser().resolve()
-    tag_to_color = {t: TAG_PALETTE[i % len(TAG_PALETTE)] for i, t in enumerate(result.all_tags)}
-
-    year_cards = []
-    for g in result.year_groups:
-        tag_badges = [
-            {"tag": t, "count": cnt, "color": tag_to_color.get(t, "#444")}
-            for t, cnt in g.tags_summary
-        ]
-
-        entries_data = []
-        for e in g.entries:
-            text_clean = e.text.strip()
-            highlighted_text = html.escape(text_clean)
-            for t in e.tags:
-                escaped_tag = html.escape(f"[{t}]")
-                c = tag_to_color.get(t, "#4A5568")
-                badge = f"<span class='entry-tag' style='background:{c};'>[{html.escape(t)}]</span>"
-                highlighted_text = highlighted_text.replace(escaped_tag, badge)
-
-            highlighted_text = highlighted_text.replace("\r\n", "\n")
-            while "\n\n\n" in highlighted_text:
-                highlighted_text = highlighted_text.replace("\n\n\n", "\n\n")
-            highlighted_text = highlighted_text.replace("\n", "<br>")
-            time_icon = "🌙" if e.timestamp.hour >= 22 or e.timestamp.hour < 5 else "☀️"
-
-            entries_data.append({
-                "time_icon": time_icon,
-                "time_str": e.time_str,
-                "has_photo": e.has_photo,
-                "highlighted_text": highlighted_text if highlighted_text else "<i>(media attachment)</i>",
-            })
-
-        year_cards.append({
-            "label": g.label,
-            "total_messages": g.total_messages,
-            "tag_badges": tag_badges,
-            "entries": entries_data,
-        })
-
-    context = {
-        "result": result,
-        "total_years_active": len(result.year_groups),
-        "year_cards": year_cards,
-    }
-    return render_to_file("on_this_day.html", context, out_file)
-

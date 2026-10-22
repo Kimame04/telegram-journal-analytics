@@ -43,7 +43,12 @@ class TestTagLifecycle(unittest.TestCase):
             self.assertTrue(Path(tmpdir, "tag_streamgraph.png").exists())
             self.assertTrue(Path(tmpdir, "tag_lifespans_gantt.png").exists())
             self.assertTrue(Path(tmpdir, "tag_monthly_heatmap.png").exists())
-            self.assertTrue(Path(tmpdir, "tag_lifecycle_report.html").exists())
+            html_path = Path(tmpdir, "tag_lifecycle_report.html")
+            self.assertTrue(html_path.exists())
+            html_text = html_path.read_text(encoding="utf-8")
+            self.assertIn("Tag & Hobby Lifecycle Explorer", html_text)
+            self.assertIn("Interactive Hobby Streamgraph", html_text)
+            self.assertIn("Lifespan Archetypes Breakdown", html_text)
 
 
 if __name__ == "__main__":

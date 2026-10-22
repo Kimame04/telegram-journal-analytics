@@ -1,21 +1,22 @@
 """
-Channel-Wrapped Retrospective Engine.
+Channel-Wrapped Retrospective - Pure Domain Logic.
 
-Generates an annual or all-time retrospective summary ("Spotify Wrapped" style)
-for personal Telegram journal channels. Computes journaling streaks, circadian personas,
-volume equivalents, top fixations, expressiveness metrics, and standout memories.
-Exports a formatted terminal summary and an interactive, standalone HTML story deck.
+Computes annual and all-time retrospective metrics:
+  - Total volume, word counts, reading metaphors, active day consistency
+  - Longest active streaks and hiatus intervals
+  - Circadian persona classification
+  - Top fixations, companion tags, and reaction expressiveness
+  - The Magnum Opus (longest reflection) and standout moments
+Zero dependencies on plotting libraries, terminal styling, or HTML templates.
 """
 
 from __future__ import annotations
 
-import html
-import math
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, date
 from itertools import combinations
-from pathlib import Path
+import math
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -61,8 +62,8 @@ class WrappedData:
     longest_gap_start: str
     longest_gap_end: str
     persona: PersonaInfo
-    top_tags: List[Tuple[str, int, float]]  # (tag, count, pct_of_tagged)
-    top_tag_pairs: List[Tuple[str, str, int]]  # (tag1, tag2, co_occurrences)
+    top_tags: List[Tuple[str, int, float]]
+    top_tag_pairs: List[Tuple[str, str, int]]
     era_tag: Optional[str]
     total_reactions: int
     top_reactions: List[Tuple[str, int]]
@@ -115,7 +116,6 @@ def determine_persona(df: pd.DataFrame) -> PersonaInfo:
     day_counts = df["day_name"].value_counts()
     peak_day = str(day_counts.idxmax()) if not day_counts.empty else "Sunday"
 
-    # Percentage calculations
     night_mask = (df["hour"] >= 22) | (df["hour"] < 4)
     late_night_mask = (df["hour"] >= 0) & (df["hour"] < 4)
     morning_mask = (df["hour"] >= 5) & (df["hour"] < 9)
@@ -128,7 +128,6 @@ def determine_persona(df: pd.DataFrame) -> PersonaInfo:
     midday_pct = round((midday_mask.sum() / total) * 100, 1)
     evening_pct = round((evening_mask.sum() / total) * 100, 1)
 
-    # Classification logic
     if late_night_pct >= 22.0 or peak_hour in (0, 1, 2, 3):
         name = "The 2 AM Luminary"
         emoji = "🌌"
@@ -180,12 +179,11 @@ def compute_streaks(
     if df.empty:
         return 0, "", "", 0, "", ""
 
-    # Parse and sort unique active dates
     unique_dates = sorted(pd.to_datetime(df["date"]).dt.date.unique())
     if not unique_dates:
         return 0, "", "", 0, "", ""
 
-    # 1. Longest consecutive active day streak
+    # 1. Longest streak
     longest_streak = 1
     current_streak = 1
     best_streak_start = unique_dates[0]
@@ -207,7 +205,7 @@ def compute_streaks(
             current_streak = 1
             curr_streak_start = curr_d
 
-    # 2. Longest gap / hiatus between consecutive entries
+    # 2. Longest gap
     longest_gap = 0
     best_gap_start = unique_dates[0]
     best_gap_end = unique_dates[0]
@@ -221,7 +219,6 @@ def compute_streaks(
             best_gap_start = prev_d
             best_gap_end = curr_d
 
-    # Also check gap from start_date to first entry if provided
     if start_date and unique_dates[0] > start_date:
         initial_gap = (unique_dates[0] - start_date).days
         if initial_gap > longest_gap:
@@ -229,7 +226,6 @@ def compute_streaks(
             best_gap_start = start_date
             best_gap_end = unique_dates[0]
 
-    # And check gap from last entry to end_date if provided
     if end_date and end_date > unique_dates[-1]:
         tail_gap = (end_date - unique_dates[-1]).days
         if tail_gap > longest_gap:
@@ -254,7 +250,6 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
     if year is not None:
         period_df = df[df["year"] == year].copy()
         period_label = str(year)
-        # Period day count (account for leap years)
         is_leap = (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
         total_period_days = 366 if is_leap else 365
         cal_start = date(year, 1, 1)
@@ -281,17 +276,14 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
     total_chars = int(period_df["char_count"].sum()) if total_messages else 0
     avg_words_per_message = round(total_words / total_messages, 1) if total_messages else 0.0
 
-    # Reading metaphors: 220 wpm reading speed, 275 words per book page
     reading_time_minutes = int(math.ceil(total_words / 220)) if total_words else 0
     book_pages_equivalent = round(total_words / 275, 1) if total_words else 0.0
 
-    # Active days
     unique_active_days = period_df["date"].nunique() if total_messages else 0
     active_days_pct = (
         round((unique_active_days / total_period_days) * 100, 1) if total_period_days else 0.0
     )
 
-    # Busiest day
     if total_messages:
         daily_counts = period_df.groupby("date").size()
         busiest_date_raw = str(daily_counts.idxmax())
@@ -301,12 +293,7 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         busiest_date = "N/A"
         busiest_date_count = 0
 
-    # Busiest month
     if total_messages:
-        month_order = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ]
         month_series = pd.to_datetime(period_df["timestamp"]).dt.strftime("%B")
         month_counts = month_series.value_counts()
         busiest_month = str(month_counts.idxmax())
@@ -315,7 +302,6 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         busiest_month = "N/A"
         busiest_month_count = 0
 
-    # Favorite day of the week
     if total_messages:
         day_counts = period_df["day_name"].value_counts()
         favorite_day = str(day_counts.idxmax())
@@ -324,7 +310,6 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         favorite_day = "N/A"
         favorite_day_count = 0
 
-    # Streaks & Hiatuses
     (
         longest_streak,
         streak_start,
@@ -334,10 +319,8 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         gap_end,
     ) = compute_streaks(period_df, cal_start, cal_end)
 
-    # Circadian Persona
     persona = determine_persona(period_df)
 
-    # Tags & Fixations
     all_tags: List[str] = []
     pair_counter: Counter = Counter()
     tagged_messages_count = 0
@@ -363,12 +346,10 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         (pair[0], pair[1], count) for pair, count in pair_counter.most_common(3)
     ]
 
-    # Detect Era of the year (tag with the highest concentration in a single quarter/period)
     era_tag: Optional[str] = None
     if top_tags:
         era_tag = top_tags[0][0]
 
-    # Expressiveness & Reactions
     total_reactions = int(period_df["total_reactions"].sum()) if "total_reactions" in period_df else 0
     emoji_counter: Counter = Counter()
     for rx_dict in period_df.get("reactions", []):
@@ -387,13 +368,11 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
     photo_count = int(period_df["has_photo"].sum()) if "has_photo" in period_df else 0
     media_count = int(period_df["has_media"].sum()) if "has_media" in period_df else 0
 
-    # Thought Monologues (Self-Replies)
     self_replies = 0
     if "reply_to_id" in period_df:
         self_replies = int(period_df["reply_to_id"].notna().sum() - (period_df["reply_to_id"] == 0).sum())
         self_replies = max(0, self_replies)
 
-    # The Magnum Opus (Longest Reflection Message)
     magnum_opus_id = None
     magnum_opus_date = "N/A"
     magnum_opus_words = 0
@@ -411,7 +390,6 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         else:
             magnum_opus_snippet = raw_snippet
 
-    # Most Reacted Message
     most_reacted_id = None
     most_reacted_date = "N/A"
     most_reacted_count = 0
@@ -480,104 +458,3 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
         most_reacted_reactions=most_reacted_reactions,
         most_reacted_snippet=most_reacted_snippet,
     )
-
-
-def render_wrapped_terminal(data: WrappedData) -> str:
-    """
-    Render a clean, structured CLI summary deck of Channel-Wrapped.
-    """
-    lines = []
-    divider = "─" * 64
-
-    lines.append("")
-    lines.append(f" ✨ CHANNEL-WRAPPED RETROSPECTIVE: {data.period_label} ✨ ".center(64, "═"))
-    lines.append("")
-
-    # Card 1: Volume & Dedication
-    lines.append(" 📖  SLIDE 1: VOLUME & DEDICATION ".center(64, "─"))
-    lines.append(f"  • Total Entries:       {data.total_messages:,} messages")
-    lines.append(f"  • Words Inscribed:     {data.total_words:,} words ({data.total_chars:,} characters)")
-    lines.append(f"  • Average Depth:       {data.avg_words_per_message:.1f} words/entry")
-    lines.append(f"  • Real-World Metaphor: ~{data.book_pages_equivalent:.1f} book pages (~{data.reading_time_minutes} min read)")
-    lines.append(f"  • Consistency:         {data.active_days}/{data.total_period_days} active days ({data.active_days_pct}%)")
-    lines.append(f"  • Peak Journal Day:    {data.busiest_date} ({data.busiest_date_count} entries)")
-    lines.append("")
-
-    # Card 2: Streaks & Cadence
-    lines.append(" ⚡  SLIDE 2: CADENCE & STREAKS ".center(64, "─"))
-    if data.longest_streak_days > 1:
-        lines.append(f"  • Longest Streak:      {data.longest_streak_days} consecutive days ({data.longest_streak_start} → {data.longest_streak_end})")
-    else:
-        lines.append(f"  • Longest Streak:      {data.longest_streak_days} day")
-    if data.longest_gap_days > 0:
-        lines.append(f"  • Longest Hiatus:      {data.longest_gap_days} days pause ({data.longest_gap_start} → {data.longest_gap_end})")
-    lines.append(f"  • Top Reflection Month:{data.busiest_month} ({data.busiest_month_count} entries)")
-    lines.append(f"  • Favorite Weekday:    {data.favorite_day_of_week} ({data.favorite_day_count} entries)")
-    lines.append("")
-
-    # Card 3: Circadian Persona
-    p = data.persona
-    lines.append(f" {p.emoji}  SLIDE 3: CIRCADIAN PERSONA ".center(64, "─"))
-    lines.append(f"  • Archetype:           {p.name} {p.emoji}")
-    lines.append(f"  • Persona Vibe:        \"{p.tagline}\"")
-    lines.append(f"  • Peak Reflection Hour:{p.peak_hour_formatted} (24h: {p.peak_hour:02d}:00)")
-    lines.append(f"  • Night Owl Index:     {p.night_owl_pct}% logged between 10 PM and 4 AM")
-    lines.append(f"  • Morning Share:       {p.morning_pct}% logged between 5 AM and 9 AM")
-    lines.append("")
-
-    # Card 4: Top Fixations & Tag Eras
-    lines.append(" 🏷️  SLIDE 4: TOP FIXATIONS & ERAS ".center(64, "─"))
-    if data.top_tags:
-        for idx, (tag, count, pct) in enumerate(data.top_tags, start=1):
-            bar = "█" * int(min(20, max(1, count / (data.top_tags[0][1] or 1) * 20)))
-            lines.append(f"  #{idx} [{tag:<14}] {bar:<20} {count:>3} mentions ({pct:>4.1f}%)")
-        if data.top_tag_pairs:
-            pair_strs = [f"[{p[0]}] + [{p[1]}] ({p[2]}x)" for p in data.top_tag_pairs]
-            lines.append(f"  • Companion Topics:    {', '.join(pair_strs)}")
-    else:
-        lines.append("  • No bracket tags detected in this period.")
-    lines.append("")
-
-    # Card 5: Expressiveness & Reactions
-    lines.append(" 🎭  SLIDE 5: EXPRESSIVENESS & MEDIA ".center(64, "─"))
-    if data.top_reactions:
-        rx_str = " ".join([f"{emoji} ({cnt})" for emoji, cnt in data.top_reactions])
-        lines.append(f"  • Total Reactions:     {data.total_reactions:,} recorded")
-        lines.append(f"  • Top Reactions:       {rx_str}")
-    else:
-        lines.append("  • Total Reactions:     0 recorded")
-    lines.append(f"  • Visual Archive:      {data.photo_count} photos, {data.media_count} total media files")
-    lines.append(f"  • Thought Monologues:  {data.self_reply_count} self-replies / follow-up updates")
-    lines.append("")
-
-    # Card 6: The Magnum Opus & Memory
-    lines.append(" 🏆  SLIDE 6: THE MAGNUM OPUS & STANDOUTS ".center(64, "─"))
-    if data.magnum_opus_words > 0:
-        lines.append(f"  • Longest Reflection:  {data.magnum_opus_words:,} words on {data.magnum_opus_date}")
-        lines.append(f"    Excerpt: \"{data.magnum_opus_snippet}\"")
-    if data.most_reacted_count > 0:
-        rx_icons = " ".join([f"{k}x{int(v) if v is not None else 1}" for k, v in data.most_reacted_reactions.items()])
-        lines.append(f"  • Most Reacted Entry:  {data.most_reacted_count} reactions ({rx_icons}) on {data.most_reacted_date}")
-        lines.append(f"    Excerpt: \"{data.most_reacted_snippet}\"")
-    lines.append("")
-    lines.append("═" * 64)
-    lines.append("")
-
-    return "\n".join(lines)
-
-
-def generate_wrapped_html(data: WrappedData, output_path: Path) -> Path:
-    """
-    Generate an interactive, standalone Spotify Wrapped-style dark-mode HTML deck.
-    100% offline, zero external CDN or trackers. Decoupled via Jinja2 template.
-    """
-    from src.renderer import render_to_file
-
-    rx_summary = " ".join([f"{k}{int(v) if v is not None else ''}" for k, v in data.most_reacted_reactions.items()])
-    context = {
-        "data": data,
-        "p": data.persona,
-        "rx_summary": rx_summary,
-    }
-    return render_to_file("wrapped.html", context, output_path)
-

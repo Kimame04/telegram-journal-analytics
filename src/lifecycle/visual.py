@@ -1,111 +1,28 @@
 """
-Tag & Hobby Lifecycles Module.
+Tag & Hobby Lifecycles - Visual Generation.
 
-Tracks how topics, hobbies, and hyperfixations rise, peak, fade, or persist over time.
-Generates streamgraphs, lifespan Gantt charts, monthly turnover matrices, and an interactive Plotly dashboard.
+Generates high-contrast streamgraphs, horizontal lifespan Gantt charts,
+chronological turnover heatmaps, and dark-mode Plotly dashboards.
+Renders the standalone HTML report via Jinja2 templates.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, Any, List, Tuple
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import seaborn as sns
 
-
-def compute_tag_lifecycles(df: pd.DataFrame, min_count: int = 5) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Compute lifecycle statistics and monthly time-series for tags.
-
-    Returns:
-        (tag_stats_df, monthly_pivot_df)
-    """
-    # Explode tags so each tag mention is a row
-    exploded = df.explode("tags").dropna(subset=["tags"])
-    exploded = exploded[exploded["tags"].str.strip() != ""]
-
-    if exploded.empty:
-        return pd.DataFrame(), pd.DataFrame()
-
-    # Tag counts
-    tag_counts = exploded["tags"].value_counts()
-    valid_tags = tag_counts[tag_counts >= min_count].index.tolist()
-    exploded_filtered = exploded[exploded["tags"].isin(valid_tags)]
-
-    # Monthly time-series pivot
-    # Get complete list of all months from min date to max date
-    all_months = pd.period_range(
-        start=df["timestamp"].min().to_period("M"),
-        end=df["timestamp"].max().to_period("M"),
-        freq="M",
-    ).astype(str).tolist()
-
-    monthly_counts = exploded_filtered.groupby(["year_month", "tags"]).size().unstack(fill_value=0)
-    monthly_counts = monthly_counts.reindex(all_months, fill_value=0)
-
-    # Compute stats per tag
-    stats_records = []
-    latest_month = all_months[-1]
-    # Months in the last 4 months of the export
-    recent_window = set(all_months[-4:])
-
-    for tag in valid_tags:
-        series = monthly_counts[tag]
-        active_series = series[series > 0]
-        if active_series.empty:
-            continue
-
-        first_month = active_series.index[0]
-        last_month = active_series.index[-1]
-        peak_month = series.idxmax()
-        peak_count = int(series.max())
-        total_count = int(tag_counts[tag])
-        months_active = len(active_series)
-
-        # Compute span in months
-        dt_first = datetime.strptime(first_month, "%Y-%m")
-        dt_last = datetime.strptime(last_month, "%Y-%m")
-        span_months = (dt_last.year - dt_first.year) * 12 + (dt_last.month - dt_first.month) + 1
-
-        # Classify lifecycle behavior:
-        # 1. Emerging: started recently (2025 or 2026) and active in recent months
-        # 2. Evergreen: active over >= 12 months and active in at least 5 distinct months
-        # 3. Burst / Seasonal: intense short-lived fixation
-        if dt_first.year >= 2025 and last_month in recent_window and span_months <= 12:
-            category = "Emerging Era"
-        elif span_months >= 12 and months_active >= 5:
-            category = "Evergreen Passion"
-        else:
-            category = "Seasonal Burst"
-
-        stats_records.append(
-            {
-                "tag": tag,
-                "total_count": total_count,
-                "first_month": first_month,
-                "last_month": last_month,
-                "peak_month": peak_month,
-                "peak_count": peak_count,
-                "span_months": span_months,
-                "months_active": months_active,
-                "category": category,
-            }
-        )
-
-    tag_stats_df = pd.DataFrame(stats_records)
-    return tag_stats_df, monthly_counts
+from .logic import compute_tag_lifecycles
 
 
 # Curated 16-color high-contrast, visually distinct qualitative palette
-# Cycles across distinct color families (Blue, Orange, Green, Rose, Purple, Teal, Rust, Olive, etc.)
-# avoiding muddy or washed-out adjacent hues.
 TAG_PALETTE = [
     "#2E5B88",  # 1. Ocean Blue
     "#E65100",  # 2. Amber Orange
@@ -137,16 +54,12 @@ def plot_tag_streamgraph(
     top_tags = top_stats["tag"].tolist()
     data = monthly_counts[top_tags]
 
-    # Convert period index strings to datetime for smooth plotting
     x_dates = [datetime.strptime(m, "%Y-%m") for m in data.index]
 
     plt.figure(figsize=(15, 7), dpi=300)
     sns.set_theme(style="whitegrid")
 
-    # Use the curated, distinct qualitative color palette
     colors = [TAG_PALETTE[i % len(TAG_PALETTE)] for i in range(len(top_tags))]
-
-    # Legend labels ranked with volume
     labels = [f"#{idx+1} [{row['tag']}] ({row['total_count']} msgs)" for idx, row in top_stats.iterrows()]
 
     plt.stackplot(
@@ -178,7 +91,6 @@ def plot_tag_lifespan_gantt(
     top_n: int = 25,
 ) -> None:
     """Plot horizontal Gantt chart showing active lifespan and peak month for each interest."""
-    # Take the top N most mentioned tags overall, then sort them by first_month for a clean chronological staircase
     df_top = tag_stats_df.sort_values("total_count", ascending=False).head(top_n)
     df_sorted = df_top.sort_values(["first_month", "total_count"], ascending=[False, False])
 
@@ -187,19 +99,16 @@ def plot_tag_lifespan_gantt(
     sns.set_theme(style="whitegrid")
 
     category_colors = {
-        "Evergreen Passion": "#2E5B88",  # Navy
-        "Seasonal Burst": "#E65100",     # Amber Orange
-        "Emerging Era": "#2E7D32",       # Forest Green
+        "Evergreen Passion": "#2E5B88",
+        "Seasonal Burst": "#E65100",
+        "Emerging Era": "#2E7D32",
     }
-
-    max_x_date = datetime.strptime("2026-09", "%Y-%m")
 
     for idx, (_, row) in enumerate(df_sorted.iterrows()):
         dt_start = datetime.strptime(row["first_month"], "%Y-%m")
         dt_end = datetime.strptime(row["last_month"], "%Y-%m")
         dt_peak = datetime.strptime(row["peak_month"], "%Y-%m")
 
-        # Bar width in days (minimum 28 days so single month is visible)
         days = max(28, (dt_end - dt_start).days + 28)
         color = category_colors.get(row["category"], "#7f7f7f")
 
@@ -214,7 +123,6 @@ def plot_tag_lifespan_gantt(
             linewidth=1.2,
         )
 
-        # Plot star on peak month
         ax.scatter(
             mdates.date2num(dt_peak),
             idx,
@@ -224,7 +132,6 @@ def plot_tag_lifespan_gantt(
             zorder=5,
         )
 
-        # Label count on right
         ax.text(
             mdates.date2num(dt_end) + 20,
             idx,
@@ -239,7 +146,6 @@ def plot_tag_lifespan_gantt(
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=2))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
-    # Add margin on the right for text labels
     dt_max_lim = datetime(2027, 4, 1)
     ax.set_xlim(right=mdates.date2num(dt_max_lim))
 
@@ -248,7 +154,6 @@ def plot_tag_lifespan_gantt(
     ax.set_title("Interest Lifespans & Peak Eras (Gantt View - Top 25 Hobbies)", fontsize=16, fontweight="bold", pad=15)
     ax.set_xlabel("Timeline (Dec 2023 – Sep 2026)", fontsize=12, labelpad=10)
 
-    # Custom legend for categories
     from matplotlib.patches import Patch
     from matplotlib.lines import Line2D
     legend_elements = [
@@ -271,7 +176,6 @@ def plot_tag_turnover_heatmap(
     top_n: int = 24,
 ) -> None:
     """Plot heatmap of Top Tags x Months showing interest turnover across quarters."""
-    # Top N tags by total volume, sorted chronologically by first appearance
     top_tags = (
         tag_stats_df.sort_values("total_count", ascending=False)
         .head(top_n)
@@ -302,40 +206,33 @@ def plot_tag_turnover_heatmap(
     plt.close()
 
 
-def generate_interactive_lifecycle_html(
+def build_lifecycle_figures(
     monthly_counts: pd.DataFrame,
     tag_stats_df: pd.DataFrame,
-    output_path: Path,
     top_n: int = 16,
-) -> None:
-    """Generate an interactive Plotly HTML dashboard with interest stream and lifespan Gantt."""
+) -> Dict[str, go.Figure]:
+    """
+    Build interactive Plotly figures in dark mode for tag and hobby lifecycles.
+
+    Returns:
+        Dictionary mapping figure keys ('streamgraph', 'ranked_bars') to Plotly go.Figure objects.
+    """
     top_stats = tag_stats_df.sort_values("total_count", ascending=False).head(top_n).reset_index(drop=True)
     top_tags = top_stats["tag"].tolist()
     data = monthly_counts[top_tags]
 
-    # Palette of distinct colors for the top N streams
     palette = [TAG_PALETTE[i % len(TAG_PALETTE)] for i in range(len(top_tags))]
     tag_to_color = {row["tag"]: palette[idx] for idx, row in top_stats.iterrows()}
 
-    fig = make_subplots(
-        rows=2,
-        cols=1,
-        vertical_spacing=0.15,
-        subplot_titles=(
-            "Interactive Interest Stream (Hover shows top 5 active hobbies for each month)",
-            f"Top {top_n} Interests Ranked by Overall Message Volume",
-        ),
-        row_heights=[0.6, 0.4],
-    )
-
-    # 1. Stacked area / stream traces (ranked #1 to #N by total volume)
+    # 1. Streamgraph figure
+    fig_stream = go.Figure()
     for idx, row in top_stats.iterrows():
         rank = idx + 1
         tag = row["tag"]
         total_cnt = row["total_count"]
         color = tag_to_color[tag]
 
-        fig.add_trace(
+        fig_stream.add_trace(
             go.Scatter(
                 x=list(data.index),
                 y=data[tag],
@@ -344,14 +241,10 @@ def generate_interactive_lifecycle_html(
                 fillcolor=color,
                 name=f"#{rank} [{tag}] ({total_cnt} msgs)",
                 stackgroup="one",
-                # Skip individual trace hover to keep hover card focused only on top 5
                 hoverinfo="skip",
-            ),
-            row=1,
-            col=1,
+            )
         )
 
-    # Build Top 5 Hover Cards per month
     total_y = data.sum(axis=1).values
     max_stacked_y = float(max(total_y)) if len(total_y) else 10.0
     upper_limit = max(max_stacked_y * 1.05, 10.0)
@@ -381,7 +274,6 @@ def generate_interactive_lifecycle_html(
                     f"{r_idx}. <span style='color:{t_color}; font-size:15px;'>■</span> <b>[{t_name}]</b>: {int(t_cnt)} msgs"
                 )
 
-            # Check if there were other active tags that month outside the stream
             outside = (
                 all_month_series[all_month_series > 0]
                 .drop(index=data.columns, errors="ignore")
@@ -391,14 +283,13 @@ def generate_interactive_lifecycle_html(
                 other_items = [f"[{t}] ({int(c)})" for t, c in outside.head(3).items()]
                 other_str = " · ".join(other_items)
                 lines.append(
-                    f"<span style='font-size:11px; color:#555555;'><i>Also active:</i> {other_str}</span>"
+                    f"<span style='font-size:11px; color:#8b949e;'><i>Also active:</i> {other_str}</span>"
                 )
 
             card = "<br>".join(lines)
         hover_cards.append(card)
 
-    # Transparent full-height bar overlay for instant, responsive hover across the month column
-    fig.add_trace(
+    fig_stream.add_trace(
         go.Bar(
             x=list(data.index),
             y=[upper_limit] * len(data.index),
@@ -407,12 +298,37 @@ def generate_interactive_lifecycle_html(
             marker=dict(color="rgba(0,0,0,0)"),
             showlegend=False,
             name="Top 5 Monthly",
-        ),
-        row=1,
-        col=1,
+        )
     )
 
-    # 2. Bar chart of top tags colored by each tag's signature stream color
+    fig_stream.update_layout(
+        height=520,
+        barmode="overlay",
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        hovermode="closest",
+        font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", color="#c9d1d9"),
+        hoverlabel=dict(
+            bgcolor="rgba(22, 27, 34, 0.96)",
+            font_size=13,
+            font_family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+            font_color="#f0f6fc",
+            bordercolor="#30363d",
+        ),
+        legend=dict(
+            title=dict(text="<b>Ranked Interests</b>", font=dict(color="#c9d1d9")),
+            orientation="h",
+            y=-0.22,
+            x=0.5,
+            xanchor="center",
+        ),
+        margin=dict(l=55, r=30, t=25, b=65),
+    )
+    fig_stream.update_xaxes(tickangle=-45, gridcolor="rgba(255,255,255,0.06)")
+    fig_stream.update_yaxes(range=[0, upper_limit], gridcolor="rgba(255,255,255,0.06)", title=dict(text="Monthly Mentions", font=dict(color="#8b949e", size=12)))
+
+    # 2. Ranked horizontal bar chart
     top_stats_bars = top_stats.sort_values("total_count", ascending=True).reset_index(drop=True)
     bar_colors = [tag_to_color[row["tag"]] for _, row in top_stats_bars.iterrows()]
     bar_labels = [
@@ -420,48 +336,110 @@ def generate_interactive_lifecycle_html(
         for _, row in top_stats_bars.iterrows()
     ]
 
-    fig.add_trace(
-        go.Bar(
+    fig_bars = go.Figure(
+        data=go.Bar(
             x=top_stats_bars["total_count"],
             y=bar_labels,
             orientation="h",
             marker_color=bar_colors,
             name="Total Messages",
             customdata=top_stats_bars[["category", "first_month", "last_month", "peak_month", "peak_count"]].values,
-            hovertemplate="<b>%{y}</b><br>Total Messages: <b>%{x}</b><br>Category: <b>%{customdata[0]}</b><br>Span: %{customdata[1]} to %{customdata[2]}<br>Peak: %{customdata[3]} (%{customdata[4]} msgs)<extra></extra>",
-        ),
-        row=2,
-        col=1,
+            hovertemplate="<b>%{y}</b><br>Total Messages: <b>%{x:,}</b><br>Category: <b>%{customdata[0]}</b><br>Span: %{customdata[1]} to %{customdata[2]}<br>Peak: %{customdata[3]} (%{customdata[4]} msgs)<extra></extra>",
+        )
+    )
+    fig_bars.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", color="#c9d1d9"),
+        margin=dict(l=140, r=35, t=25, b=45),
+        height=max(380, len(top_stats_bars) * 26),
+        showlegend=False,
+    )
+    fig_bars.update_xaxes(
+        title=dict(text="Total Messages", font=dict(color="#8b949e", size=12)),
+        gridcolor="rgba(255,255,255,0.06)",
+    )
+    fig_bars.update_yaxes(
+        gridcolor="rgba(255,255,255,0.06)",
+        tickfont=dict(color="#c9d1d9"),
     )
 
-    fig.update_layout(
-        title=dict(
-            text="Personal Journal - Tag & Hobby Lifecycle Explorer (Dec 2023 – Sep 2026)",
-            font=dict(size=18),
-            x=0.5,
-            xanchor="center",
-        ),
-        height=1050,
-        barmode="overlay",
-        template="plotly_white",
-        hovermode="closest",
-        hoverlabel=dict(
-            bgcolor="rgba(255, 255, 255, 0.96)",
-            font_size=13,
-            font_family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            bordercolor="#888888",
-        ),
-        legend=dict(
-            title=dict(text="<b>Ranked Interests</b>"),
-            orientation="h",
-            y=-0.12,
-            x=0.5,
-            xanchor="center",
-        ),
-    )
-    fig.update_yaxes(range=[0, upper_limit], row=1, col=1)
+    return {
+        "streamgraph": fig_stream,
+        "ranked_bars": fig_bars,
+    }
 
-    fig.write_html(output_path, include_plotlyjs="cdn")
+
+def build_lifecycle_chart_divs(figures: Dict[str, go.Figure]) -> Dict[str, str]:
+    """Convert Plotly figures to embeddable HTML div strings."""
+    return {
+        name: fig.to_html(full_html=False, include_plotlyjs=False)
+        for name, fig in figures.items()
+    }
+
+
+def generate_interactive_lifecycle_html(
+    monthly_counts: pd.DataFrame,
+    tag_stats_df: pd.DataFrame,
+    output_path: Path,
+    top_n: int = 16,
+    summary: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Generate an interactive Plotly HTML dashboard with interest stream and lifespan Gantt via Jinja2."""
+    from src.renderer import render_to_file
+
+    figures = build_lifecycle_figures(monthly_counts, tag_stats_df, top_n=top_n)
+    chart_divs = build_lifecycle_chart_divs(figures)
+
+    if summary is None:
+        evergreens = tag_stats_df[tag_stats_df["category"] == "Evergreen Passion"]["tag"].tolist()
+        bursts = tag_stats_df[tag_stats_df["category"] == "Seasonal Burst"]["tag"].tolist()
+        emerging = tag_stats_df[tag_stats_df["category"] == "Emerging Era"]["tag"].tolist()
+        top_row = tag_stats_df.sort_values("total_count", ascending=False).iloc[0]
+        summary = {
+            "total_tags_analyzed": len(tag_stats_df),
+            "evergreens": evergreens,
+            "bursts": bursts,
+            "emerging": emerging,
+            "top_tag": top_row["tag"],
+            "top_tag_count": int(top_row["total_count"]),
+        }
+
+    evergreen_records = (
+        tag_stats_df[tag_stats_df["category"] == "Evergreen Passion"]
+        .sort_values("total_count", ascending=False)
+        .to_dict(orient="records")
+    )
+    burst_records = (
+        tag_stats_df[tag_stats_df["category"] == "Seasonal Burst"]
+        .sort_values("total_count", ascending=False)
+        .to_dict(orient="records")
+    )
+    emerging_records = (
+        tag_stats_df[tag_stats_df["category"] == "Emerging Era"]
+        .sort_values("total_count", ascending=False)
+        .to_dict(orient="records")
+    )
+
+    date_span = ""
+    if not monthly_counts.empty and len(monthly_counts.index) >= 2:
+        try:
+            d_start = datetime.strptime(monthly_counts.index[0], "%Y-%m").strftime("%b %Y")
+            d_end = datetime.strptime(monthly_counts.index[-1], "%Y-%m").strftime("%b %Y")
+            date_span = f"{d_start} – {d_end}"
+        except Exception:
+            pass
+
+    context = {
+        "summary": summary,
+        "charts": chart_divs,
+        "evergreen_records": evergreen_records,
+        "burst_records": burst_records,
+        "emerging_records": emerging_records,
+        "date_span": date_span,
+    }
+    render_to_file("tag_lifecycle.html", context, output_path)
 
 
 def generate_lifecycle_report(
@@ -493,16 +471,12 @@ def generate_lifecycle_report(
     heatmap_png = out_dir / "tag_monthly_heatmap.png"
     plot_tag_turnover_heatmap(monthly_counts, tag_stats_df, heatmap_png, top_n=min(22, len(tag_stats_df)))
 
-    # 4. Interactive Plotly Explorer (HTML)
-    interactive_html = out_dir / "tag_lifecycle_report.html"
-    generate_interactive_lifecycle_html(monthly_counts, tag_stats_df, interactive_html, top_n=top_n)
-
     # Summary metrics
     evergreens = tag_stats_df[tag_stats_df["category"] == "Evergreen Passion"]["tag"].tolist()
     bursts = tag_stats_df[tag_stats_df["category"] == "Seasonal Burst"]["tag"].tolist()
     emerging = tag_stats_df[tag_stats_df["category"] == "Emerging Era"]["tag"].tolist()
 
-    return {
+    summary = {
         "total_tags_analyzed": len(tag_stats_df),
         "evergreens": evergreens,
         "bursts": bursts,
@@ -510,3 +484,9 @@ def generate_lifecycle_report(
         "top_tag": tag_stats_df.sort_values("total_count", ascending=False).iloc[0]["tag"],
         "top_tag_count": int(tag_stats_df.sort_values("total_count", ascending=False).iloc[0]["total_count"]),
     }
+
+    # 4. Interactive Plotly Explorer (HTML)
+    interactive_html = out_dir / "tag_lifecycle_report.html"
+    generate_interactive_lifecycle_html(monthly_counts, tag_stats_df, interactive_html, top_n=top_n, summary=summary)
+
+    return summary

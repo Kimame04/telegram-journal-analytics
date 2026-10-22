@@ -52,6 +52,21 @@ class TestParserAndCircadian(unittest.TestCase):
                 self.assertGreater(v, 0)
             self.assertEqual(tot, sum(rx.values()))
 
+    def test_generate_circadian_report(self):
+        from src.circadian import generate_circadian_report
+        with tempfile.TemporaryDirectory() as tmpdir:
+            metrics = generate_circadian_report(self.df, tmpdir)
+            self.assertIn("peak_hour", metrics)
+            self.assertTrue(Path(tmpdir, "circadian_weekly_heatmap.png").exists())
+            self.assertTrue(Path(tmpdir, "hourly_circadian_distribution.png").exists())
+            self.assertTrue(Path(tmpdir, "longitudinal_circadian_shift.png").exists())
+            html_path = Path(tmpdir, "circadian_report.html")
+            self.assertTrue(html_path.exists())
+            html_text = html_path.read_text(encoding="utf-8")
+            self.assertIn("Circadian & Habit Profile", html_text)
+            self.assertIn("Peak Journaling Hour", html_text)
+            self.assertIn("Night Owl Index", html_text)
+
 
 if __name__ == "__main__":
     unittest.main()
