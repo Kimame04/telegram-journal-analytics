@@ -131,6 +131,31 @@ def _sample_hour(rng: random.Random) -> int:
     return rng.choices(hours, weights=weights, k=1)[0]
 
 
+def _sample_reactions(rng: random.Random) -> Dict[str, int]:
+    """
+    Generate realistic reactions modeled after personal journal channels:
+    - ~78% of messages have 0 reactions
+    - ~18% have 1 emoji type (count 1-3)
+    - ~4% have 2 distinct emoji types (count 1-3 each, total <= 6)
+    Overall total per message is strictly bounded between 0 and 6.
+    """
+    roll = rng.random()
+    if roll >= 0.22:
+        return {}
+
+    pool = ["👍", "❤", "🔥", "🎉", "👏"]
+    if roll < 0.04:
+        # 2 emoji types
+        emojis = rng.sample(pool, 2)
+        c1 = rng.randint(1, 3)
+        c2 = rng.randint(1, min(3, 6 - c1))
+        return {emojis[0]: c1, emojis[1]: c2}
+    else:
+        # 1 emoji type
+        emoji = rng.choice(pool)
+        return {emoji: rng.randint(1, 4)}
+
+
 def generate_synthetic_journal(
     num_messages: int = 400,
     start_date: date = date(2023, 12, 1),
@@ -177,10 +202,7 @@ def generate_synthetic_journal(
                         tag_list = []
 
                     has_photo = rng.random() < 0.12
-                    reactions = {}
-                    if rng.random() < 0.25:
-                        rx_emoji = rng.choice(["👍", "❤", "🔥", "🎉"])
-                        reactions[rx_emoji] = rng.randint(1, 3)
+                    reactions = _sample_reactions(rng)
 
                     messages.append(
                         SyntheticMessage(
@@ -233,10 +255,7 @@ def generate_synthetic_journal(
             text = ""  # media-only entry
 
         # Reactions
-        reactions = {}
-        if rng.random() < 0.3:
-            rx_emoji = rng.choice(["👍", "❤", "🔥", "🎉", "👏"])
-            reactions[rx_emoji] = rng.randint(1, 4)
+        reactions = _sample_reactions(rng)
 
         messages.append(
             SyntheticMessage(

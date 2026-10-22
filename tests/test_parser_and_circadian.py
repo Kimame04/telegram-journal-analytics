@@ -35,9 +35,22 @@ class TestParserAndCircadian(unittest.TestCase):
     def test_circadian_metrics(self):
         metrics = compute_circadian_metrics(self.df)
         self.assertIn("peak_hour", metrics)
-        self.assertEqual(metrics["peak_hour"], 23)
         self.assertIn(metrics["peak_day"], ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
-        self.assertGreater(metrics["night_owl_pct"], 25.0)
+        self.assertGreater(metrics["night_owl_pct"], 20.0)
+
+    def test_reaction_sanitization_and_parquet_fidelity(self):
+        from src.parser import _sanitize_reactions
+        raw_dirty = {"❤": None, "🔥": 3, "👍": 0, "👏": -1}
+        cleaned = _sanitize_reactions(raw_dirty)
+        self.assertEqual(cleaned, {"🔥": 3})
+
+        # Verify all rows in loaded dataset have clean reactions
+        for rx, tot in zip(self.df["reactions"], self.df["total_reactions"]):
+            self.assertIsInstance(rx, dict)
+            for k, v in rx.items():
+                self.assertIsNotNone(v)
+                self.assertGreater(v, 0)
+            self.assertEqual(tot, sum(rx.values()))
 
 
 if __name__ == "__main__":

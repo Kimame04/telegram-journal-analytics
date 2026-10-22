@@ -374,11 +374,13 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
     for rx_dict in period_df.get("reactions", []):
         if isinstance(rx_dict, dict):
             for emoji_char, count in rx_dict.items():
-                try:
-                    c_int = int(count) if count is not None else 1
-                except (ValueError, TypeError):
-                    c_int = 1
-                emoji_counter[emoji_char] += c_int
+                if count is not None:
+                    try:
+                        c_int = int(count)
+                        if c_int > 0:
+                            emoji_counter[emoji_char] += c_int
+                    except (ValueError, TypeError):
+                        pass
 
     top_reactions: List[Tuple[str, int]] = emoji_counter.most_common(5)
 
@@ -423,7 +425,12 @@ def compute_wrapped(df: pd.DataFrame, year: Optional[int] = None) -> WrappedData
             most_reacted_id = int(reacted_row["id"]) if pd.notna(reacted_row["id"]) else None
             ts = pd.to_datetime(reacted_row["timestamp"])
             most_reacted_date = ts.strftime("%B %d, %Y at %I:%M %p")
-            most_reacted_reactions = reacted_row.get("reactions", {})
+            raw_rx = reacted_row.get("reactions", {})
+            most_reacted_reactions = {
+                str(k): int(v)
+                for k, v in raw_rx.items()
+                if v is not None and int(v) > 0
+            } if isinstance(raw_rx, dict) else {}
             raw_rx_snippet = str(reacted_row["text"]).strip().replace("\n", " ")
             if len(raw_rx_snippet) > 220:
                 most_reacted_snippet = raw_rx_snippet[:217] + "..."

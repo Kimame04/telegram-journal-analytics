@@ -7,6 +7,7 @@ Decouples data extraction from analysis so any export folder can be swapped seam
 
 from __future__ import annotations
 
+import math
 import re
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,22 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from bs4 import BeautifulSoup
+
+
+def _sanitize_reactions(r: Any) -> Dict[str, int]:
+    """Sanitize reaction dictionary, stripping out None/NaN/non-positive counts."""
+    if not isinstance(r, dict):
+        return {}
+    cleaned = {}
+    for k, v in r.items():
+        if v is not None and not (isinstance(v, float) and math.isnan(v)):
+            try:
+                c = int(v)
+                if c > 0:
+                    cleaned[str(k)] = c
+            except (ValueError, TypeError):
+                pass
+    return cleaned
 
 
 def _find_export_html_files(export_dir: Path) -> List[Path]:
@@ -191,6 +208,9 @@ def load_export(
             if verbose:
                 print(f"[Parser] Loading cached data from {cache_file.name}...")
             df = pd.read_parquet(cache_file)
+            if "reactions" in df.columns:
+                df["reactions"] = df["reactions"].apply(_sanitize_reactions)
+                df["total_reactions"] = df["reactions"].apply(lambda r: sum(r.values()))
             return df
 
     if verbose:
@@ -215,6 +235,11 @@ def load_export(
     # Ensure timestamp is datetime
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+
+    # Sanitize reactions and total reactions
+    if "reactions" in df.columns:
+        df["reactions"] = df["reactions"].apply(_sanitize_reactions)
+        df["total_reactions"] = df["reactions"].apply(lambda r: sum(r.values()))
 
     # Temporal feature engineering
     df["date"] = df["timestamp"].dt.date

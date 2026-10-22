@@ -128,7 +128,7 @@ class TestChannelWrapped(unittest.TestCase):
             self.assertIn("<!DOCTYPE html>", content)
             self.assertIn("Channel-Wrapped", content)
             self.assertIn("storyBars", content)
-            self.assertIn("The Midnight Philosopher", content)
+            self.assertIn(wrapped.persona.name, content)
             self.assertIn("Total Words Written", content)
             self.assertIn("Switch to Scrollable Deck Mode", content)
 
