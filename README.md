@@ -27,6 +27,12 @@ Understand your biological and psychological rhythms:
 - **Weekly Rhythm Heatmap:** Day-of-week vs. hour-of-day activity matrix revealing peak journaling blocks.
 - **Longitudinal Circadian Shift:** Year-over-year visualization demonstrating how daily schedules, wake-up times, and late-night habits evolved over time.
 
+### 4. 🎁 Channel-Wrapped Retrospective
+An annual and all-time retrospective summary ("Spotify Wrapped" style):
+- **6-Slide Story Deck:** Volume & book-page equivalents, consecutive streaks & hiatuses, circadian personas (e.g. *The Midnight Philosopher*, *The Dawn Chronicler*), top tag eras, reaction footprint, and magnum opus standout reflections.
+- **Interactive Dark-Mode Web Deck:** Pure CSS glassmorphism, responsive story progress bars, and keyboard arrow navigation with toggleable scrollable mode.
+- **Flexible Scope:** Focus on a single year (`--year 2024`) or your full journaling journey (`--all-time`).
+
 ---
 
 ## Project Architecture
@@ -37,19 +43,23 @@ telegram-journal-analytics/
 │   ├── parser.py       # Universal Telegram HTML parser & Parquet cache engine
 │   ├── circadian.py    # Circadian distribution & longitudinal habit models
 │   ├── lifecycle.py    # Tag extraction, streamgraph & lifespan categorization
-│   └── otd.py          # On This Day query engine & HTML memory card generator
+│   ├── otd.py          # On This Day query engine & HTML memory card generator
+│   └── wrapped.py      # Annual & all-time retrospective story deck engine
 ├── scripts/
 │   ├── run_circadian.py       # CLI runner for Circadian analytics
 │   ├── run_tag_lifecycles.py  # CLI runner for Tag & Hobby lifecycles
-│   └── run_otd.py             # CLI runner for On This Day flashback
+│   ├── run_otd.py             # CLI runner for On This Day flashback
+│   └── run_wrapped.py         # CLI runner for Channel-Wrapped retrospective
 ├── tests/
 │   ├── test_parser_and_circadian.py
 │   ├── test_lifecycle.py
-│   └── test_otd.py
+│   ├── test_otd.py
+│   └── test_wrapped.py
 ├── output/             # Generated interactive HTML dashboards and PNG charts
 │   ├── circadian/
 │   ├── lifecycles/
-│   └── otd/
+│   ├── otd/
+│   └── wrapped/
 ├── environment.yml     # Conda environment definition
 ├── requirements.txt    # Pip dependencies
 └── README.md
@@ -127,6 +137,24 @@ python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
 python -m scripts.run_circadian --export-dir "ChatExport_sample"
 ```
 
+### 4. Run Channel-Wrapped Retrospective
+```bash
+# Retrospective for the latest active year (e.g. 2024)
+python -m scripts.run_wrapped
+
+# Retrospective for a specific year
+python -m scripts.run_wrapped --year 2024
+
+# Retrospective for all recorded years
+python -m scripts.run_wrapped --all-time
+
+# Terminal output only (skip HTML)
+python -m scripts.run_wrapped --no-html
+
+# Run against synthetic demo dataset
+python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
+```
+
 ---
 
 ## Testing
@@ -141,10 +169,11 @@ python -m unittest discover tests
 
 ## Potential Future Features
 
-- **Channel-Wrapped:** An annual or all-time retrospective summary (Spotify Wrapped style) highlighting your top fixations, most active reflection months, night-owl streaks, and personal milestones.
 - **Telegram Bot Integration:** An automated companion bot that pushes daily "On This Day" flashback messages directly to your channel or DM, eliminating manual export steps.
 - **Concern & Anxiety Evolution:** Longitudinal tracking of worries, stressors, and emotional themes over time to see how past challenges evolved and resolved.
 - **"Ask Past You":** Semantic search and conversational Q&A (RAG) over your journal history to query what you thought or felt about specific topics in the past.
+- **Thought Chains & Self-Replies:** Tree visualization and latency analysis of how multi-month self-reply monologue threads evolve.
+- **Habit & Consistency Calendar Grid:** GitHub-style full-year daily activity heatmap highlighting unbroken streaks and reflection pauses.
 
 ---
 

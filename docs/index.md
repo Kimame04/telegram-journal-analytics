@@ -10,6 +10,7 @@ Interactive reports generated from a 400-message mock dataset. No server require
 
 | Module | Description | Live Demo | CLI Command |
 | :--- | :--- | :--- | :--- |
+| **Channel-Wrapped** | Annual & all-time Spotify Wrapped-style story deck | [wrapped.html](demos/wrapped.html) | `python -m scripts.run_wrapped` |
 | **On This Day (OTD)** | Multi-year personal flashback for matching calendar days | [on_this_day.html](demos/on_this_day.html) | `python -m scripts.run_otd` |
 | **Tag Lifecycles** | Streamgraph & lifespan categorization of bracket tags `[tag]` | [tag_lifecycle_report.html](demos/tag_lifecycle_report.html) | `python -m scripts.run_tag_lifecycles` |
 | **Circadian Habits** | 24-hour distribution, weekly heatmaps & longitudinal shifts | [circadian_report.html](demos/circadian_report.html) | `python -m scripts.run_circadian` |
@@ -65,6 +66,23 @@ $ python -m scripts.run_otd --date 09-15
 
 ---
 
+### 4. Channel-Wrapped Retrospective
+Spotify Wrapped-style retrospective highlighting your annual or all-time writing volume, book page metaphors, longest streaks, circadian personas (e.g. *The Midnight Philosopher*), top fixations, and standout memories.
+
+```text
+═══════════ ✨ CHANNEL-WRAPPED RETROSPECTIVE: 2024 ✨ ════════════
+  • Total Entries:       136 messages
+  • Words Inscribed:     1,367 words (8,738 characters)
+  • Real-World Metaphor: ~5.0 book pages (~7 min read)
+  • Consistency:         104/366 active days (28.4%)
+  • Archetype:           The Midnight Philosopher 🦉
+  • Peak Reflection Hour:11:00 PM (24h: 23:00)
+  • Top Fixations:       [reading] (21), [fitness] (19), [coffee] (19)
+════════════════════════════════════════════════════════════════
+```
+
+---
+
 ## Quickstart
 
 ### 1. Setup Environment
@@ -84,6 +102,7 @@ pip install -r requirements.txt
 python -m scripts.generate_synthetic_export --output-dir "ChatExport_sample"
 
 # Run analytics against mock data
+python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
 python -m scripts.run_otd --export-dir "ChatExport_sample"
 python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
 python -m scripts.run_circadian --export-dir "ChatExport_sample"
