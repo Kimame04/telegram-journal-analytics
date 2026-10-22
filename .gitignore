@@ -36,3 +36,7 @@ ChatExport_sample/**/.DS_Store
 # Local generated analytics outputs
 output/
 !output/**/.gitkeep
+
+# Agent instructions and internal SOP (keep untracked)
+agents.md
+AGENTS.md
