@@ -7,6 +7,7 @@ Decouples data extraction from analysis so any export folder can be swapped seam
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from datetime import datetime
@@ -19,6 +20,11 @@ from bs4 import BeautifulSoup
 
 def _sanitize_reactions(r: Any) -> Dict[str, int]:
     """Sanitize reaction dictionary, stripping out None/NaN/non-positive counts."""
+    if isinstance(r, str):
+        try:
+            r = json.loads(r)
+        except Exception:
+            return {}
     if not isinstance(r, dict):
         return {}
     cleaned = {}

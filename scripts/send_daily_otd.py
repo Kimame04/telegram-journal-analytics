@@ -32,8 +32,8 @@ from src.bot.client import TelegramClient, TelegramAPIError
 from src.bot.config import load_config
 from src.bot.formatter import format_otd_message
 from src.bot.handlers import resolve_export_dir
+from src.bot.live_sync import load_unified_journal
 from src.otd.logic import parse_query_date, query_on_this_day
-from src.parser import load_export
 
 
 def main() -> None:
@@ -100,8 +100,8 @@ def main() -> None:
     if not args.quiet:
         print(f"[OTD Bot] Using export archive: {export_dir.name}")
 
-    # Load dataset
-    df = load_export(export_dir, verbose=not args.quiet)
+    # Load unified dataset (Base Archive + Live Delta)
+    df = load_unified_journal(export_dir, verbose=not args.quiet)
 
     # Parse target date
     target_month, target_day = parse_query_date(args.date)

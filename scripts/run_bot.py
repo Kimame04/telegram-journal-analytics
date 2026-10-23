@@ -22,8 +22,8 @@ if str(root_dir) not in sys.path:
 
 from src.bot.client import TelegramClient, TelegramAPIError
 from src.bot.config import load_config
+from src.bot.live_sync import load_unified_journal
 from src.bot.handlers import BotDispatcher, resolve_export_dir
-from src.parser import load_export
 
 
 def main() -> None:
@@ -57,16 +57,20 @@ def main() -> None:
     print(f"🤖 Starting {bot_name} (@{bot_username})...")
     print("=" * 60)
 
-    # Resolve export directory and load journal archive
+    # Resolve export directory and load unified journal archive (Base + Live Delta)
     export_dir = resolve_export_dir(args.export_dir or config.export_dir)
     print(f"[Bot] Loading journal archive from: {export_dir.name}")
-    df = load_export(export_dir, verbose=False)
-    print(f"[Bot] Loaded {len(df):,} journal entries successfully.")
+    df = load_unified_journal(export_dir, verbose=True)
+    print(f"[Bot] Loaded {len(df):,} total journal entries.")
 
     dispatcher = BotDispatcher(client, config, df)
 
-    print("\n🟢 Bot is live and listening for messages!")
+    print("\n🟢 Bot is live and listening for messages & channel posts!")
     print(f"👉 Open Telegram and chat with: https://t.me/{bot_username}")
+    if config.channel_id:
+        print(f"📢 Live ingestion active for channel ID: {config.channel_id}")
+    else:
+        print("💡 Live ingestion: Add this bot as an Admin in your channel to auto-sync posts!")
     print("Commands supported: /otd, /random, /stats, /tag <name>, /help")
     print("Press Ctrl+C to terminate.\n")
 
@@ -89,7 +93,7 @@ def main() -> None:
             for update in updates:
                 offset = update["update_id"] + 1
 
-                # Handle text messages
+                # Handle private user text messages & DM commands
                 if "message" in update:
                     msg = update["message"]
                     sender = msg.get("from", {}).get("first_name", "User")
@@ -104,6 +108,16 @@ def main() -> None:
                     data = cb.get("data", "")
                     print(f"🔘 [{sender} clicked]: {data}")
                     dispatcher.dispatch_callback_query(cb)
+
+                # Handle live channel posts (new reflections)
+                elif "channel_post" in update:
+                    post = update["channel_post"]
+                    dispatcher.dispatch_channel_post(post)
+
+                # Handle edited channel posts
+                elif "edited_channel_post" in update:
+                    post = update["edited_channel_post"]
+                    dispatcher.dispatch_edited_channel_post(post)
 
         except KeyboardInterrupt:
             print("\n🛑 Shutting down Telegram bot...")

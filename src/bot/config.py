@@ -15,6 +15,7 @@ from typing import Optional
 class BotConfig:
     bot_token: str
     chat_id: Optional[str] = None
+    channel_id: Optional[str] = None
     export_dir: Optional[str] = None
 
     @property
@@ -26,6 +27,11 @@ class BotConfig:
     def can_send(self) -> bool:
         """True if bot_token and chat_id are both present."""
         return self.is_configured and bool(self.chat_id and str(self.chat_id).strip())
+
+    @property
+    def can_ingest_channel(self) -> bool:
+        """True if bot_token is configured and channel_id is designated."""
+        return self.is_configured and bool(self.channel_id and str(self.channel_id).strip())
 
 
 def get_repo_root() -> Path:
@@ -63,20 +69,22 @@ def load_config(env_file: Optional[Path] = None) -> BotConfig:
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN") or file_vars.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID") or file_vars.get("TELEGRAM_CHAT_ID", "")
+    channel_id = os.environ.get("TELEGRAM_CHANNEL_ID") or file_vars.get("TELEGRAM_CHANNEL_ID", "")
     export_dir = os.environ.get("DEFAULT_EXPORT_DIR") or file_vars.get("DEFAULT_EXPORT_DIR")
 
     return BotConfig(
         bot_token=token.strip(),
         chat_id=str(chat_id).strip() if chat_id else None,
+        channel_id=str(channel_id).strip() if channel_id else None,
         export_dir=export_dir.strip() if export_dir else None,
     )
 
 
-def save_chat_id_to_env(chat_id: str | int, env_file: Optional[Path] = None) -> Path:
-    """Updates or inserts TELEGRAM_CHAT_ID into the local .env file."""
+def _update_env_var(key: str, value: str | int, env_file: Optional[Path] = None) -> Path:
+    """Updates or inserts a key=value pair in the local .env file."""
     root = get_repo_root()
     path = env_file or (root / ".env")
-    chat_str = str(chat_id).strip()
+    val_str = str(value).strip()
 
     lines: list[str] = []
     found = False
@@ -84,16 +92,26 @@ def save_chat_id_to_env(chat_id: str | int, env_file: Optional[Path] = None) -> 
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                if line.strip().startswith("TELEGRAM_CHAT_ID="):
-                    lines.append(f'TELEGRAM_CHAT_ID="{chat_str}"\n')
+                if line.strip().startswith(f"{key}="):
+                    lines.append(f'{key}="{val_str}"\n')
                     found = True
                 else:
                     lines.append(line)
 
     if not found:
-        lines.append(f'TELEGRAM_CHAT_ID="{chat_str}"\n')
+        lines.append(f'{key}="{val_str}"\n')
 
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
     return path
+
+
+def save_chat_id_to_env(chat_id: str | int, env_file: Optional[Path] = None) -> Path:
+    """Updates or inserts TELEGRAM_CHAT_ID into the local .env file."""
+    return _update_env_var("TELEGRAM_CHAT_ID", chat_id, env_file)
+
+
+def save_channel_id_to_env(channel_id: str | int, env_file: Optional[Path] = None) -> Path:
+    """Updates or inserts TELEGRAM_CHANNEL_ID into the local .env file."""
+    return _update_env_var("TELEGRAM_CHANNEL_ID", channel_id, env_file)

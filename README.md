@@ -40,11 +40,13 @@ An annual and all-time retrospective summary ("Spotify Wrapped" style):
 - **Interactive Dark-Mode Web Deck:** Pure CSS glassmorphism, responsive story progress bars, and keyboard arrow navigation with toggleable scrollable mode.
 - **Flexible Scope:** Focus on a single year (`--year 2024`) or your full journaling journey (`--all-time`).
 
-### 6. 🤖 Telegram Companion Bot
+### 6. 🤖 Telegram Companion Bot & Live Ingestion
 An automated, zero-dependency Telegram companion bot connecting directly to your journal archive:
 - **Daily Flashback Dispatcher:** Automatically queries today's multi-year memories and delivers clean, dark-mode styled HTML cards with blockquotes, tags, and reactions straight to your Telegram DM or channel.
+- **Continuous Live Channel Ingestion:** Add the bot as an Admin to your private journal channel. Every new reflection you write or edit is automatically streamed, parsed, and merged into a live delta layer (`.cache/live_messages.parquet`) without manual exports.
 - **Interactive Commands:** Real-time query support for `/otd [date]`, `/random`, `/stats` (words, reading pages, streaks, circadian persona), and `/tag <name>`.
 - **Inline Keyboard Navigation:** Tap buttons like `[🎲 Random Memory]` and `[📊 Stats]` to explore reflections on the fly.
+- **Background macOS Daemon:** Includes an automated `launchd` installer (`scripts/setup_daemon.py`) to run quietly across logins.
 - **100% Free & Lightweight:** Zero third-party bot framework bloat; uses Python standard library HTTP and the free Telegram Bot API.
 
 ---
@@ -55,10 +57,11 @@ An automated, zero-dependency Telegram companion bot connecting directly to your
 telegram-journal-analytics/
 ├── src/
 │   ├── parser.py          # Universal Telegram HTML parser & Parquet cache engine
-│   ├── bot/               # Telegram Companion Bot integration
+│   ├── bot/               # Telegram Companion Bot & Live Sync
 │   │   ├── client.py      # Zero-dependency HTTP Bot API client
 │   │   ├── formatter.py   # Rich Telegram HTML formatting & chunking
 │   │   ├── handlers.py    # Command routing & callback dispatch
+│   │   ├── live_sync.py   # Live channel ingestion & delta Parquet store
 │   │   └── config.py      # .env configuration loader
 │   ├── circadian/         # Circadian distribution & longitudinal habit models
 │   │   ├── logic.py       # Pure domain metrics (0 plotting dependencies)
@@ -86,6 +89,7 @@ telegram-journal-analytics/
 │   ├── run_all.py            # Master CLI runner for unified dashboard & all reports
 │   ├── send_daily_otd.py     # CLI runner for scheduled Telegram OTD flashback push
 │   ├── run_bot.py            # Long-polling interactive Telegram bot daemon
+│   ├── setup_daemon.py       # macOS launchd background service installer
 │   ├── get_chat_id.py        # Automatic Chat ID discovery & .env updater
 │   ├── run_circadian.py      # CLI runner for Circadian analytics
 │   ├── run_tag_lifecycles.py # CLI runner for Tag & Hobby lifecycles
@@ -93,6 +97,7 @@ telegram-journal-analytics/
 │   ├── run_wrapped.py        # CLI runner for Channel-Wrapped retrospective
 │   └── generate_synthetic_export.py # Authentic mock Telegram export generator
 ├── tests/
+│   ├── test_live_sync.py
 │   ├── test_bot_client.py
 │   ├── test_bot_formatter.py
 │   ├── test_bot_config.py
@@ -213,19 +218,24 @@ python -m scripts.run_wrapped --no-html
 
 # Run against synthetic demo dataset
 python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
-### 6. Telegram Companion Bot
+### 6. Telegram Companion Bot & Live Channel Ingestion
 ```bash
-# Discover your Telegram Chat ID and link your account (first-time setup)
+# Link your personal Telegram account or journal channel (first-time setup)
 python -m scripts.get_chat_id
 
-# Dispatch today's flashback directly to your Telegram chat
+# Dispatch today's flashback directly to your Telegram chat (or scheduled via cron)
 python -m scripts.send_daily_otd
 
 # Preview the formatted HTML message in terminal without sending
 python -m scripts.send_daily_otd --dry-run
 
-# Start the interactive long-polling daemon (/otd, /random, /stats, /tag)
+# Start interactive daemon & live channel ingestion in terminal
 python -m scripts.run_bot
+
+# Or install as a silent 24/7 background daemon on macOS (via launchd)
+python -m scripts.setup_daemon install
+python -m scripts.setup_daemon status
+python -m scripts.setup_daemon uninstall
 ```
 
 ---

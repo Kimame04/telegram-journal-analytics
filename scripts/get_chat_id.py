@@ -68,26 +68,35 @@ def main() -> None:
                     username = from_user.get("username", "")
                     user_tag = f" (@{username})" if username else ""
 
+                    is_channel = chat.get("type") == "channel" or "channel_post" in update
+                    chat_title = chat.get("title") or (f"{name}{user_tag}")
+
                     print("\n" + "🎉 " + "=" * 50)
-                    print(f"✅ Message received from {name}{user_tag}!")
-                    print(f"🔑 Your Telegram Chat ID is: {chat_id}")
-                    print("=" * 54)
+                    if is_channel:
+                        print(f"📢 Channel post detected from: {chat_title}")
+                        print(f"🔑 Your Telegram Channel ID is: {chat_id}")
+                        print("=" * 54)
+                        from src.bot.config import save_channel_id_to_env
+                        save_channel_id_to_env(chat_id)
+                        print(f'💾 Automatically saved TELEGRAM_CHANNEL_ID="{chat_id}" to .env')
+                    else:
+                        print(f"✅ Private message received from: {chat_title}")
+                        print(f"🔑 Your Telegram Chat ID is: {chat_id}")
+                        print("=" * 54)
+                        save_chat_id_to_env(chat_id)
+                        print(f'💾 Automatically saved TELEGRAM_CHAT_ID="{chat_id}" to .env')
 
-                    # Save to .env
-                    save_chat_id_to_env(chat_id)
-                    print(f"💾 Automatically saved TELEGRAM_CHAT_ID=\"{chat_id}\" to .env")
-
-                    # Send confirmation message back to user on Telegram
-                    try:
-                        client.send_message(
-                            chat_id,
-                            f"🎉 <b>Journal Bot Connected!</b>\n\n"
-                            f"Hello <b>{name}</b>! Your Chat ID (<code>{chat_id}</code>) has been successfully saved.\n\n"
-                            f"Try sending <code>/start</code> or <code>/otd</code> to explore your journal archive!"
-                        )
-                        print("📬 Sent confirmation message to your Telegram!")
-                    except Exception as e:
-                        print(f"⚠️ Could not send confirmation reply: {e}")
+                        # Send confirmation message back to user on Telegram
+                        try:
+                            client.send_message(
+                                chat_id,
+                                f"🎉 <b>Journal Bot Connected!</b>\n\n"
+                                f"Hello <b>{name}</b>! Your Chat ID (<code>{chat_id}</code>) has been successfully saved.\n\n"
+                                f"Try sending <code>/start</code> or <code>/otd</code> to explore your journal archive!"
+                            )
+                            print("📬 Sent confirmation message to your Telegram!")
+                        except Exception as e:
+                            print(f"⚠️ Could not send confirmation reply: {e}")
 
                     print("\nAll done! You can now run:")
                     print("  - Daily Push:   python -m scripts.send_daily_otd")

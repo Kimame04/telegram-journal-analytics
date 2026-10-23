@@ -122,12 +122,19 @@ def compute_quick_stats(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 class BotDispatcher:
-    """Routes updates to corresponding command and callback handlers."""
+    """Routes updates to corresponding command, callback, and live channel handlers."""
 
-    def __init__(self, client: TelegramClient, config: BotConfig, df: pd.DataFrame):
+    def __init__(
+        self,
+        client: TelegramClient,
+        config: BotConfig,
+        df: pd.DataFrame,
+        delta_path: Optional[Path] = None,
+    ):
         self.client = client
         self.config = config
         self.df = df
+        self.delta_path = delta_path
 
     def handle_start(self, chat_id: int | str) -> None:
         """Welcome message and command directory."""
@@ -241,10 +248,20 @@ class BotDispatcher:
         self.client.send_message(chat_id, msg)
 
     def dispatch_message(self, message: Dict[str, Any]) -> None:
-        """Route incoming message text to appropriate handler."""
+        """Route incoming message text to appropriate handler with strict access control."""
         chat_id = message.get("chat", {}).get("id")
         text = message.get("text", "").strip()
         if not chat_id or not text:
+            return
+
+        # Security Access Control: Whitelist check
+        sender_id = str(message.get("from", {}).get("id", chat_id))
+        if self.config.chat_id and sender_id != str(self.config.chat_id):
+            print(f"🛑 [Security] Blocked unauthorized interaction attempt from user ID: {sender_id}")
+            self.client.send_message(
+                chat_id,
+                "🔒 <b>Access Denied</b>\nThis is a private personal journal bot. Only the journal owner can access memories."
+            )
             return
 
         parts = text.split(maxsplit=1)
@@ -280,7 +297,14 @@ class BotDispatcher:
         cb_id = callback.get("id")
         data = callback.get("data", "")
         message = callback.get("message", {})
-        chat_id = message.get("chat", {}).get("id")
+        sender_id = str(callback.get("from", {}).get("id", ""))
+        if self.config.chat_id and sender_id != str(self.config.chat_id):
+            if cb_id:
+                try:
+                    self.client.answer_callback_query(cb_id, text="Access Denied: Private Bot", show_alert=True)
+                except Exception:
+                    pass
+            return
 
         if cb_id:
             try:
@@ -297,3 +321,47 @@ class BotDispatcher:
             self.handle_random(chat_id)
         elif data == "cmd:stats":
             self.handle_stats(chat_id)
+
+    def handle_channel_post(self, post: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Ingest incoming or edited channel post into the live delta layer."""
+        from src.bot.config import save_channel_id_to_env
+        from src.bot.live_sync import ingest_channel_post
+
+        chat = post.get("chat", {})
+        post_chat_id = str(chat.get("id"))
+
+        # Channel verification & auto-discovery
+        if self.config.channel_id:
+            if post_chat_id != str(self.config.channel_id):
+                # Ignore posts from non-configured channels
+                return None
+        else:
+            # Auto-discover and persist channel ID if not yet configured
+            save_channel_id_to_env(post_chat_id)
+            self.config.channel_id = post_chat_id
+            print(f"📢 [LiveSync] Auto-configured TELEGRAM_CHANNEL_ID=\"{post_chat_id}\" from channel: {chat.get('title')}")
+
+        # Ingest and persist into live delta Parquet store
+        row, is_new = ingest_channel_post(post, delta_path=self.delta_path)
+
+        # Update in-memory DataFrame so /otd and /stats immediately reflect this entry
+        new_row_df = pd.DataFrame([row])
+        new_row_df["timestamp"] = pd.to_datetime(new_row_df["timestamp"])
+        self.df = (
+            pd.concat([self.df, new_row_df], ignore_index=True)
+            .drop_duplicates(subset=["id"], keep="last")
+            .sort_values("timestamp")
+            .reset_index(drop=True)
+        )
+
+        status_tag = "New entry" if is_new else "Edited entry"
+        print(f"✨ [LiveSync] {status_tag} #{row['id']} synced ({row['word_count']} words, tags: {row['tags']})")
+        return row
+
+    def dispatch_channel_post(self, post: Dict[str, Any]) -> None:
+        """Route incoming new channel post."""
+        self.handle_channel_post(post)
+
+    def dispatch_edited_channel_post(self, post: Dict[str, Any]) -> None:
+        """Route incoming edited channel post."""
+        self.handle_channel_post(post)
