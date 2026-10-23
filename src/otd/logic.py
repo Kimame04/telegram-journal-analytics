@@ -179,7 +179,7 @@ def query_on_this_day(
                 ts = row["timestamp"]
                 t_str = ts.strftime("%I:%M %p").lstrip("0")
                 d_str = ts.strftime("%A, %d %B %Y")
-                tags_list = list(row["tags"]) if isinstance(row["tags"], (list, tuple)) else []
+                tags_list = list(row["tags"]) if hasattr(row["tags"], "__iter__") and not isinstance(row["tags"], (str, bytes)) else []
                 raw_reactions = dict(row["reactions"]) if isinstance(row["reactions"], dict) else {}
 
                 clean_reactions: Dict[str, int] = {}

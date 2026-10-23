@@ -97,6 +97,8 @@ def _save_delta_df(df: pd.DataFrame, path: Path) -> None:
 def _load_delta_df(path: Path) -> pd.DataFrame:
     """Load delta DataFrame and restore reaction dictionaries."""
     df = pd.read_parquet(path)
+    if "tags" in df.columns:
+        df["tags"] = df["tags"].apply(lambda t: list(t) if hasattr(t, "__iter__") and not isinstance(t, (str, bytes)) else [])
     if "reactions" in df.columns:
         df["reactions"] = df["reactions"].apply(_sanitize_reactions)
         df["total_reactions"] = df["reactions"].apply(lambda r: sum(r.values()) if isinstance(r, dict) else 0)

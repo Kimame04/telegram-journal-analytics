@@ -104,7 +104,7 @@ def compute_quick_stats(df: pd.DataFrame) -> Dict[str, Any]:
     all_tags: List[str] = []
     if "tags" in df.columns:
         for tags_list in df["tags"].dropna():
-            if isinstance(tags_list, list):
+            if hasattr(tags_list, "__iter__") and not isinstance(tags_list, (str, bytes)):
                 all_tags.extend(tags_list)
     top_tags = [t for t, _ in pd.Series(all_tags).value_counts().head(5).items()] if all_tags else []
 
@@ -232,8 +232,28 @@ class BotDispatcher:
             self.client.send_message(chat_id, "⚠️ No tags indexed in journal.")
             return
 
-        # Filter dataframe for matching tag
-        matches = self.df[self.df["tags"].apply(lambda tags: isinstance(tags, list) and clean_tag in tags)]
+        # Filter dataframe for matching tag (exact match, or fallback to partial match)
+        def tag_matches_exact(tags_val: Any) -> bool:
+            if hasattr(tags_val, "__iter__") and not isinstance(tags_val, (str, bytes)):
+                return clean_tag in [str(t).lower() for t in tags_val]
+            return False
+
+        matches = self.df[self.df["tags"].apply(tag_matches_exact)]
+        matched_tag_label = clean_tag
+
+        if matches.empty:
+            def tag_matches_partial(tags_val: Any) -> bool:
+                if hasattr(tags_val, "__iter__") and not isinstance(tags_val, (str, bytes)):
+                    return any(clean_tag in str(t).lower() for t in tags_val)
+                return False
+            matches = self.df[self.df["tags"].apply(tag_matches_partial)]
+            if not matches.empty:
+                # Find the full matching tag name from the first match
+                for t in matches.iloc[0]["tags"]:
+                    if clean_tag in str(t).lower():
+                        matched_tag_label = str(t)
+                        break
+
         if matches.empty:
             self.client.send_message(chat_id, f"🔍 No entries found tagged with <code>[{escape_html(clean_tag)}]</code>.")
             return
@@ -244,7 +264,7 @@ class BotDispatcher:
         last_seen = dates.iloc[-1].strftime("%b %d, %Y")
         sample_text = matches.iloc[-1].get("text", "")
 
-        msg = format_tag_message(clean_tag, count, first_seen, last_seen, sample_text)
+        msg = format_tag_message(matched_tag_label, count, first_seen, last_seen, sample_text)
         self.client.send_message(chat_id, msg)
 
     def dispatch_message(self, message: Dict[str, Any]) -> None:

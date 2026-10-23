@@ -214,6 +214,8 @@ def load_export(
             if verbose:
                 print(f"[Parser] Loading cached data from {cache_file.name}...")
             df = pd.read_parquet(cache_file)
+            if "tags" in df.columns:
+                df["tags"] = df["tags"].apply(lambda t: list(t) if hasattr(t, "__iter__") and not isinstance(t, (str, bytes)) else [])
             if "reactions" in df.columns:
                 df["reactions"] = df["reactions"].apply(_sanitize_reactions)
                 df["total_reactions"] = df["reactions"].apply(lambda r: sum(r.values()))
