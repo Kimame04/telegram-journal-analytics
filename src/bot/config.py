@@ -1,0 +1,99 @@
+"""
+Configuration loader for Telegram Bot integration.
+Parses local .env file or environment variables with zero third-party dependencies.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import os
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class BotConfig:
+    bot_token: str
+    chat_id: Optional[str] = None
+    export_dir: Optional[str] = None
+
+    @property
+    def is_configured(self) -> bool:
+        """True if bot_token is present and valid."""
+        return bool(self.bot_token and self.bot_token.strip())
+
+    @property
+    def can_send(self) -> bool:
+        """True if bot_token and chat_id are both present."""
+        return self.is_configured and bool(self.chat_id and str(self.chat_id).strip())
+
+
+def get_repo_root() -> Path:
+    """Returns the repository root directory."""
+    return Path(__file__).resolve().parent.parent.parent
+
+
+def parse_env_file(env_path: Path) -> dict[str, str]:
+    """Parse a simple .env file into a dictionary."""
+    env_vars: dict[str, str] = {}
+    if not env_path.exists():
+        return env_vars
+
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip().strip("'\"")
+                env_vars[key] = val
+    return env_vars
+
+
+def load_config(env_file: Optional[Path] = None) -> BotConfig:
+    """
+    Load bot configuration from .env file or system environment.
+    Precedence: os.environ > .env file.
+    """
+    root = get_repo_root()
+    path = env_file or (root / ".env")
+    file_vars = parse_env_file(path)
+
+    token = os.environ.get("TELEGRAM_BOT_TOKEN") or file_vars.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID") or file_vars.get("TELEGRAM_CHAT_ID", "")
+    export_dir = os.environ.get("DEFAULT_EXPORT_DIR") or file_vars.get("DEFAULT_EXPORT_DIR")
+
+    return BotConfig(
+        bot_token=token.strip(),
+        chat_id=str(chat_id).strip() if chat_id else None,
+        export_dir=export_dir.strip() if export_dir else None,
+    )
+
+
+def save_chat_id_to_env(chat_id: str | int, env_file: Optional[Path] = None) -> Path:
+    """Updates or inserts TELEGRAM_CHAT_ID into the local .env file."""
+    root = get_repo_root()
+    path = env_file or (root / ".env")
+    chat_str = str(chat_id).strip()
+
+    lines: list[str] = []
+    found = False
+
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("TELEGRAM_CHAT_ID="):
+                    lines.append(f'TELEGRAM_CHAT_ID="{chat_str}"\n')
+                    found = True
+                else:
+                    lines.append(line)
+
+    if not found:
+        lines.append(f'TELEGRAM_CHAT_ID="{chat_str}"\n')
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return path

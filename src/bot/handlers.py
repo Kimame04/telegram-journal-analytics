@@ -1,0 +1,299 @@
+"""
+Telegram Bot Command & Event Handlers.
+Routes incoming messages and callback queries to domain analytics logic.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import pandas as pd
+
+from src.bot.client import TelegramClient
+from src.bot.config import BotConfig, get_repo_root
+from src.bot.formatter import (
+    escape_html,
+    format_otd_message,
+    format_stats_message,
+    format_tag_message,
+)
+from src.otd.logic import get_random_active_day, parse_query_date, query_on_this_day
+
+
+def resolve_export_dir(preferred_dir: Optional[str | Path] = None) -> Path:
+    """
+    Resolve the Telegram export directory path with robust fallbacks:
+    1. Preferred directory if passed and exists.
+    2. 'ChatExport_kieran's channel' in repo root.
+    3. Any ChatExport_* directory in repo root.
+    4. 'ChatExport_sample' benchmark fixture.
+    """
+    root = get_repo_root()
+    if preferred_dir:
+        p = Path(preferred_dir).expanduser()
+        if not p.is_absolute():
+            p = root / p
+        if p.exists() and p.is_dir():
+            return p
+
+    default_personal = root / "ChatExport_kieran's channel"
+    if default_personal.exists() and default_personal.is_dir():
+        return default_personal
+
+    for candidate in sorted(root.glob("ChatExport_*")):
+        if candidate.is_dir() and candidate.name != "ChatExport_sample":
+            return candidate
+
+    sample = root / "ChatExport_sample"
+    if sample.exists() and sample.is_dir():
+        return sample
+
+    raise FileNotFoundError("Could not find any Telegram export directory in repository.")
+
+
+def compute_quick_stats(df: pd.DataFrame) -> Dict[str, Any]:
+    """Compute high-level summary KPIs from the parsed DataFrame."""
+    total_messages = len(df)
+    total_words = int(df["word_count"].sum()) if "word_count" in df.columns else 0
+    pages = int(round(total_words / 250))
+
+    # Night owl index (22:00 -> 04:00)
+    hours = df["hour"] if "hour" in df.columns else pd.Series([], dtype=int)
+    if not hours.empty:
+        night_owl_mask = (hours >= 22) | (hours < 4)
+        night_owl_pct = float(night_owl_mask.mean() * 100)
+        peak_hour = int(hours.mode().iloc[0]) if not hours.mode().empty else 23
+    else:
+        night_owl_pct = 0.0
+        peak_hour = 23
+
+    # Persona heuristic
+    if night_owl_pct > 50:
+        persona = "The Midnight Philosopher 🌙"
+    elif peak_hour < 12:
+        persona = "The Dawn Chronicler 🌅"
+    elif 12 <= peak_hour < 18:
+        persona = "The Afternoon Synthesizer ☕"
+    else:
+        persona = "The Evening Storyteller 🌇"
+
+    # Consistency & active days
+    dates = pd.to_datetime(df["date"]).drop_duplicates().sort_values()
+    if len(dates) >= 2:
+        min_date, max_date = dates.min(), dates.max()
+        span_days = max(1, (max_date - min_date).days + 1)
+        consistency_pct = float(len(dates) / span_days * 100)
+
+        # Longest day streak
+        date_diffs = dates.diff().dt.days
+        current_streak = 1
+        longest_streak = 1
+        for diff in date_diffs[1:]:
+            if diff == 1:
+                current_streak += 1
+                longest_streak = max(longest_streak, current_streak)
+            else:
+                current_streak = 1
+    else:
+        consistency_pct = 100.0 if len(dates) == 1 else 0.0
+        longest_streak = len(dates)
+
+    # Top tags
+    all_tags: List[str] = []
+    if "tags" in df.columns:
+        for tags_list in df["tags"].dropna():
+            if isinstance(tags_list, list):
+                all_tags.extend(tags_list)
+    top_tags = [t for t, _ in pd.Series(all_tags).value_counts().head(5).items()] if all_tags else []
+
+    return {
+        "persona": persona,
+        "night_owl_pct": night_owl_pct,
+        "peak_hour": peak_hour,
+        "total_messages": total_messages,
+        "total_words": total_words,
+        "pages": pages,
+        "consistency_pct": consistency_pct,
+        "streak": longest_streak,
+        "top_tags": top_tags,
+    }
+
+
+class BotDispatcher:
+    """Routes updates to corresponding command and callback handlers."""
+
+    def __init__(self, client: TelegramClient, config: BotConfig, df: pd.DataFrame):
+        self.client = client
+        self.config = config
+        self.df = df
+
+    def handle_start(self, chat_id: int | str) -> None:
+        """Welcome message and command directory."""
+        text = (
+            "👋 <b>Welcome to your Telegram Journal Companion!</b>\n\n"
+            "I connect directly with your journal archive to surface memories, track consistency, and profile your habits.\n\n"
+            "<b>Available Commands:</b>\n"
+            "• <code>/otd</code> — Flashback for today's calendar date\n"
+            "• <code>/otd MM-DD</code> — Flashback for a specific date (e.g. <code>/otd 09-15</code> or <code>/otd Sep 15</code>)\n"
+            "• <code>/random</code> — Discover a random past active journal day\n"
+            "• <code>/stats</code> — High-level intelligence scorecard & streaks\n"
+            "• <code>/tag &lt;name&gt;</code> — Search interest tag mentions (e.g. <code>/tag f1</code>)\n"
+            "• <code>/help</code> — Show this manual\n\n"
+            "✨ <i>Tip: Tap the buttons below to quickly explore your archive!</i>"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🕰️ Today's Flashback", "callback_data": "cmd:otd"},
+                    {"text": "🎲 Random Memory", "callback_data": "cmd:random"},
+                ],
+                [
+                    {"text": "📊 Journal Stats", "callback_data": "cmd:stats"},
+                ],
+            ]
+        }
+        self.client.send_message(chat_id, text, reply_markup=keyboard)
+
+    def handle_otd(self, chat_id: int | str, date_arg: Optional[str] = None) -> None:
+        """Handle /otd command."""
+        try:
+            target_month, target_day = parse_query_date(date_arg)
+        except ValueError as e:
+            self.client.send_message(chat_id, f"⚠️ {escape_html(str(e))}")
+            return
+
+        otd_result = query_on_this_day(self.df, month=target_month, day=target_day, window_days=0)
+        messages = format_otd_message(otd_result)
+
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🎲 Random Memory", "callback_data": "cmd:random"},
+                    {"text": "📊 Stats", "callback_data": "cmd:stats"},
+                ]
+            ]
+        }
+
+        for i, chunk in enumerate(messages):
+            # Attach keyboard only to the final message chunk
+            markup = keyboard if i == len(messages) - 1 else None
+            self.client.send_message(chat_id, chunk, reply_markup=markup)
+
+    def handle_random(self, chat_id: int | str) -> None:
+        """Handle /random command."""
+        month, day = get_random_active_day(self.df)
+        otd_result = query_on_this_day(self.df, month=month, day=day, window_days=0)
+        messages = format_otd_message(otd_result)
+
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🎲 Another Random", "callback_data": "cmd:random"},
+                    {"text": "🕰️ Today's Flashback", "callback_data": "cmd:otd"},
+                ]
+            ]
+        }
+
+        for i, chunk in enumerate(messages):
+            markup = keyboard if i == len(messages) - 1 else None
+            self.client.send_message(chat_id, chunk, reply_markup=markup)
+
+    def handle_stats(self, chat_id: int | str) -> None:
+        """Handle /stats command."""
+        stats = compute_quick_stats(self.df)
+        text = format_stats_message(stats)
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🕰️ Today's Flashback", "callback_data": "cmd:otd"},
+                    {"text": "🎲 Random Memory", "callback_data": "cmd:random"},
+                ]
+            ]
+        }
+        self.client.send_message(chat_id, text, reply_markup=keyboard)
+
+    def handle_tag(self, chat_id: int | str, tag_query: str) -> None:
+        """Handle /tag <tag> command."""
+        clean_tag = tag_query.strip().lower().lstrip("#[").rstrip("]")
+        if not clean_tag:
+            self.client.send_message(chat_id, "⚠️ Please specify a tag. E.g.: <code>/tag f1</code>")
+            return
+
+        if "tags" not in self.df.columns:
+            self.client.send_message(chat_id, "⚠️ No tags indexed in journal.")
+            return
+
+        # Filter dataframe for matching tag
+        matches = self.df[self.df["tags"].apply(lambda tags: isinstance(tags, list) and clean_tag in tags)]
+        if matches.empty:
+            self.client.send_message(chat_id, f"🔍 No entries found tagged with <code>[{escape_html(clean_tag)}]</code>.")
+            return
+
+        count = len(matches)
+        dates = pd.to_datetime(matches["timestamp"]).sort_values()
+        first_seen = dates.iloc[0].strftime("%b %d, %Y")
+        last_seen = dates.iloc[-1].strftime("%b %d, %Y")
+        sample_text = matches.iloc[-1].get("text", "")
+
+        msg = format_tag_message(clean_tag, count, first_seen, last_seen, sample_text)
+        self.client.send_message(chat_id, msg)
+
+    def dispatch_message(self, message: Dict[str, Any]) -> None:
+        """Route incoming message text to appropriate handler."""
+        chat_id = message.get("chat", {}).get("id")
+        text = message.get("text", "").strip()
+        if not chat_id or not text:
+            return
+
+        parts = text.split(maxsplit=1)
+        cmd = parts[0].lower().split("@")[0]  # strip bot username if present, e.g. /otd@kaya0401_bot
+        arg = parts[1].strip() if len(parts) > 1 else None
+
+        if cmd in ("/start", "/help"):
+            self.handle_start(chat_id)
+        elif cmd in ("/otd", "/today"):
+            self.handle_otd(chat_id, date_arg=arg)
+        elif cmd in ("/random", "/memory"):
+            self.handle_random(chat_id)
+        elif cmd in ("/stats", "/wrapped"):
+            self.handle_stats(chat_id)
+        elif cmd == "/tag":
+            if arg:
+                self.handle_tag(chat_id, arg)
+            else:
+                self.client.send_message(chat_id, "Usage: <code>/tag &lt;name&gt;</code> (e.g. <code>/tag f1</code>)")
+        else:
+            # If user sent plain text date (e.g. "Sep 15" or "09-15"), try to parse as OTD
+            try:
+                parse_query_date(text)
+                self.handle_otd(chat_id, date_arg=text)
+            except ValueError:
+                self.client.send_message(
+                    chat_id,
+                    "❓ Unknown command. Send <code>/help</code> to see available actions."
+                )
+
+    def dispatch_callback_query(self, callback: Dict[str, Any]) -> None:
+        """Handle inline button callback queries."""
+        cb_id = callback.get("id")
+        data = callback.get("data", "")
+        message = callback.get("message", {})
+        chat_id = message.get("chat", {}).get("id")
+
+        if cb_id:
+            try:
+                self.client.answer_callback_query(cb_id)
+            except Exception:
+                pass
+
+        if not chat_id or not data:
+            return
+
+        if data == "cmd:otd":
+            self.handle_otd(chat_id)
+        elif data == "cmd:random":
+            self.handle_random(chat_id)
+        elif data == "cmd:stats":
+            self.handle_stats(chat_id)

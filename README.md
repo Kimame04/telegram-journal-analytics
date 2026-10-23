@@ -40,6 +40,13 @@ An annual and all-time retrospective summary ("Spotify Wrapped" style):
 - **Interactive Dark-Mode Web Deck:** Pure CSS glassmorphism, responsive story progress bars, and keyboard arrow navigation with toggleable scrollable mode.
 - **Flexible Scope:** Focus on a single year (`--year 2024`) or your full journaling journey (`--all-time`).
 
+### 6. 🤖 Telegram Companion Bot
+An automated, zero-dependency Telegram companion bot connecting directly to your journal archive:
+- **Daily Flashback Dispatcher:** Automatically queries today's multi-year memories and delivers clean, dark-mode styled HTML cards with blockquotes, tags, and reactions straight to your Telegram DM or channel.
+- **Interactive Commands:** Real-time query support for `/otd [date]`, `/random`, `/stats` (words, reading pages, streaks, circadian persona), and `/tag <name>`.
+- **Inline Keyboard Navigation:** Tap buttons like `[🎲 Random Memory]` and `[📊 Stats]` to explore reflections on the fly.
+- **100% Free & Lightweight:** Zero third-party bot framework bloat; uses Python standard library HTTP and the free Telegram Bot API.
+
 ---
 
 ## Project Architecture
@@ -48,6 +55,11 @@ An annual and all-time retrospective summary ("Spotify Wrapped" style):
 telegram-journal-analytics/
 ├── src/
 │   ├── parser.py          # Universal Telegram HTML parser & Parquet cache engine
+│   ├── bot/               # Telegram Companion Bot integration
+│   │   ├── client.py      # Zero-dependency HTTP Bot API client
+│   │   ├── formatter.py   # Rich Telegram HTML formatting & chunking
+│   │   ├── handlers.py    # Command routing & callback dispatch
+│   │   └── config.py      # .env configuration loader
 │   ├── circadian/         # Circadian distribution & longitudinal habit models
 │   │   ├── logic.py       # Pure domain metrics (0 plotting dependencies)
 │   │   └── visual.py      # Plotly dark-mode & Matplotlib visual generators
@@ -72,12 +84,18 @@ telegram-journal-analytics/
 │   └── tag_lifecycle.html # Streamgraph & tag lifespan HTML dashboard
 ├── scripts/
 │   ├── run_all.py            # Master CLI runner for unified dashboard & all reports
+│   ├── send_daily_otd.py     # CLI runner for scheduled Telegram OTD flashback push
+│   ├── run_bot.py            # Long-polling interactive Telegram bot daemon
+│   ├── get_chat_id.py        # Automatic Chat ID discovery & .env updater
 │   ├── run_circadian.py      # CLI runner for Circadian analytics
 │   ├── run_tag_lifecycles.py # CLI runner for Tag & Hobby lifecycles
 │   ├── run_otd.py            # CLI runner for On This Day flashback
 │   ├── run_wrapped.py        # CLI runner for Channel-Wrapped retrospective
 │   └── generate_synthetic_export.py # Authentic mock Telegram export generator
 ├── tests/
+│   ├── test_bot_client.py
+│   ├── test_bot_formatter.py
+│   ├── test_bot_config.py
 │   ├── test_parser_and_circadian.py
 │   ├── test_lifecycle.py
 │   ├── test_otd.py
@@ -85,6 +103,7 @@ telegram-journal-analytics/
 │   ├── test_dashboard.py
 │   └── test_renderer.py
 ├── output/                # Generated interactive HTML dashboards and PNG charts
+├── .env.example           # Template for bot secrets (gitignored)
 ├── environment.yml        # Conda environment definition
 ├── requirements.txt       # Pip dependencies
 └── README.md
@@ -194,6 +213,19 @@ python -m scripts.run_wrapped --no-html
 
 # Run against synthetic demo dataset
 python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
+### 6. Telegram Companion Bot
+```bash
+# Discover your Telegram Chat ID and link your account (first-time setup)
+python -m scripts.get_chat_id
+
+# Dispatch today's flashback directly to your Telegram chat
+python -m scripts.send_daily_otd
+
+# Preview the formatted HTML message in terminal without sending
+python -m scripts.send_daily_otd --dry-run
+
+# Start the interactive long-polling daemon (/otd, /random, /stats, /tag)
+python -m scripts.run_bot
 ```
 
 ---
@@ -210,7 +242,6 @@ python -m unittest discover tests
 
 ## Potential Future Features
 
-- **Telegram Bot Integration:** An automated companion bot that pushes daily "On This Day" flashback messages directly to your channel or DM, eliminating manual export steps.
 - **Concern & Anxiety Evolution:** Longitudinal tracking of worries, stressors, and emotional themes over time to see how past challenges evolved and resolved.
 - **"Ask Past You":** Semantic search and conversational Q&A (RAG) over your journal history to query what you thought or felt about specific topics in the past.
 - **Thought Chains & Self-Replies:** Tree visualization and latency analysis of how multi-month self-reply monologue threads evolve.

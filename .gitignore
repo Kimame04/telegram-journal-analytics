@@ -18,11 +18,15 @@ __pycache__/
 ehthumbs.db
 Thumbs.db
 
-# Virtual environments
+# Virtual environments & local env files
 venv/
 .venv/
 env/
 .env/
+.env
+*.env
+.env.*
+!.env.example
 
 # Personal Telegram chat export datasets (privacy protection)
 ChatExport*/
