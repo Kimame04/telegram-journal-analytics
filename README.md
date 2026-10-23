@@ -1,263 +1,170 @@
 # Telegram Journal Analytics 🕰️📊
 
-A privacy-focused, modular analytics and memory flashback engine for personal Telegram journal channels.
+A privacy-focused personal analytics suite and companion Telegram bot for your personal journal channel. Transforms your raw reflections into interactive intelligence dossiers, multi-year "On This Day" flashbacks, and continuous real-time channel sync without manual exports.
 
-Transform raw Telegram chat export files (`messages.html`, `messages2.html`, etc.) into rich behavioral insights, interest lifecycles, and multi-year "On This Day" time capsules. Built with a decoupled ingestion layer that seamlessly runs against any Telegram channel export without code modifications.
-
----
-
-## Features
-
-### 1. 📊 Master Journal Dossier & Unified Dashboard
-An all-in-one standalone HTML intelligence dossier and orchestrator combining all analytical engines into a single cohesive report:
-- **Hero KPI Grid:** Total messages, total words, book page equivalents, active consistency %, longest streak, peak hour, night-owl share, top interest, and circadian persona.
-- **Unified Visuals:** Seamlessly embeds the interactive Plotly streamgraph, 24-hour circadian curve, weekly rhythm heatmap, longitudinal shifts, and multi-year flashback cards.
-- **Sticky Section Navigation:** Smoothly jump across Overview, Circadian, Lifecycles, Wrapped, and On This Day sections.
-- **100% Offline & Private:** Single Plotly.js script in `<head>`, zero external tracking or font dependencies.
-
-### 2. 🕰️ "On This Day" (OTD) Flashback Engine
-Surface thoughts, fixations, and memories recorded on the same calendar day across past years:
-- **Multi-Year Comparison:** See what you were doing today, 1 year ago, 2 years ago, etc., side-by-side.
-- **Compact Feed:** Clean, numbered CLI output with active time spans and tag highlights.
-- **Standalone HTML Memory Cards:** Beautiful, dark-mode, self-contained interactive web cards generated for each day.
-- **Flexible Discovery:** Query exact dates (`09-15`), fuzzy windows (`--window 2`), or rediscover active memories with `--random`.
-
-### 3. 🏷️ Tag & Hobby Lifecycles
-Track how interests, media fixations, projects, and creative outlets evolve over time using bracket tags (e.g. `[f1]`, `[mai]`, `[bumblebee]`):
-- **Hobby Streamgraph:** Interactive Plotly streamgraph ranking interests by volume with stream-synchronized hover cards.
-- **Interest Lifespans (Gantt View):** Categorizes topics into **Evergreen Passions**, **Seasonal Bursts**, and **Emerging Eras** with peak activity markers.
-- **Turnover Matrix:** Heatmap showing how thematic anchors shift across phases of life.
-
-### 4. 🌙 Circadian & Habit Profiling
-Understand your biological and psychological rhythms:
-- **24-Hour Circadian Profile:** Hourly message distribution highlighting your peak reflection window and night-owl share.
-- **Weekly Rhythm Heatmap:** Day-of-week vs. hour-of-day activity matrix revealing peak journaling blocks.
-- **Longitudinal Circadian Shift:** Year-over-year visualization demonstrating how daily schedules, wake-up times, and late-night habits evolved over time.
-
-### 5. 🎁 Channel-Wrapped Retrospective
-An annual and all-time retrospective summary ("Spotify Wrapped" style):
-- **6-Slide Story Deck:** Volume & book-page equivalents, consecutive streaks & hiatuses, circadian personas (e.g. *The Midnight Philosopher*, *The Dawn Chronicler*), top tag eras, reaction footprint, and magnum opus standout reflections.
-- **Interactive Dark-Mode Web Deck:** Pure CSS glassmorphism, responsive story progress bars, and keyboard arrow navigation with toggleable scrollable mode.
-- **Flexible Scope:** Focus on a single year (`--year 2024`) or your full journaling journey (`--all-time`).
-
-### 6. 🤖 Telegram Companion Bot & Live Ingestion
-An automated, zero-dependency Telegram companion bot connecting directly to your journal archive:
-- **Daily Flashback Dispatcher:** Automatically queries today's multi-year memories and delivers clean, dark-mode styled HTML cards with blockquotes, tags, and reactions straight to your Telegram DM or channel.
-- **Continuous Live Channel Ingestion:** Add the bot as an Admin to your private journal channel. Every new reflection you write or edit is automatically streamed, parsed, and merged into a live delta layer (`.cache/live_messages.parquet`) without manual exports.
-- **Interactive Commands:** Real-time query support for `/otd [date]`, `/random`, `/stats` (words, reading pages, streaks, circadian persona), and `/tag <name>`.
-- **Inline Keyboard Navigation:** Tap buttons like `[🎲 Random Memory]` and `[📊 Stats]` to explore reflections on the fly.
-- **Background macOS Daemon:** Includes an automated `launchd` installer (`scripts/setup_daemon.py`) to run quietly across logins.
-- **100% Free & Lightweight:** Zero third-party bot framework bloat; uses Python standard library HTTP and the free Telegram Bot API.
+For internal system designs, data models, and module topologies, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
-## Project Architecture
-
-```
-telegram-journal-analytics/
-├── src/
-│   ├── parser.py          # Universal Telegram HTML parser & Parquet cache engine
-│   ├── bot/               # Telegram Companion Bot & Live Sync
-│   │   ├── client.py      # Zero-dependency HTTP Bot API client
-│   │   ├── formatter.py   # Rich Telegram HTML formatting & chunking
-│   │   ├── handlers.py    # Command routing & callback dispatch
-│   │   ├── live_sync.py   # Live channel ingestion & delta Parquet store
-│   │   └── config.py      # .env configuration loader
-│   ├── circadian/         # Circadian distribution & longitudinal habit models
-│   │   ├── logic.py       # Pure domain metrics (0 plotting dependencies)
-│   │   └── visual.py      # Plotly dark-mode & Matplotlib visual generators
-│   ├── lifecycle/         # Tag extraction, streamgraph & lifespan categorization
-│   │   ├── logic.py       # Tag counts, active spans, turnover matrix
-│   │   └── visual.py      # Streamgraphs & lifespan Gantt charts
-│   ├── otd/               # On This Day query engine & memory models
-│   │   ├── logic.py       # Calendar queries, windowing, random lookup
-│   │   └── visual.py      # Terminal formatting & HTML memory card preparation
-│   ├── wrapped/           # Annual & all-time retrospective analytics engine
-│   │   ├── logic.py       # KPIs, reading metaphors, personas, fixations
-│   │   └── visual.py      # Terminal retrospective deck & HTML story deck
-│   ├── dashboard/         # Master unified dashboard aggregator & visuals
-│   │   ├── logic.py       # Cross-domain aggregation & OTD fallback logic
-│   │   └── visual.py      # Plotly chart embedding & dashboard rendering
-│   └── renderer.py        # Centralized Jinja2 template loader & render engine
-├── templates/             # Standalone, decoupled HTML/CSS/JS presentation templates
-│   ├── dashboard.html     # All-in-one Master Dossier dark-mode dashboard
-│   ├── wrapped.html       # Spotify Wrapped-style interactive story deck
-│   ├── on_this_day.html   # Dark-mode On This Day multi-year memory cards
-│   ├── circadian.html     # Circadian & habit HTML dashboard
-│   └── tag_lifecycle.html # Streamgraph & tag lifespan HTML dashboard
-├── scripts/
-│   ├── run_all.py            # Master CLI runner for unified dashboard & all reports
-│   ├── send_daily_otd.py     # CLI runner for scheduled Telegram OTD flashback push
-│   ├── run_bot.py            # Long-polling interactive Telegram bot daemon
-│   ├── setup_daemon.py       # macOS launchd background service installer
-│   ├── get_chat_id.py        # Automatic Chat ID discovery & .env updater
-│   ├── run_circadian.py      # CLI runner for Circadian analytics
-│   ├── run_tag_lifecycles.py # CLI runner for Tag & Hobby lifecycles
-│   ├── run_otd.py            # CLI runner for On This Day flashback
-│   ├── run_wrapped.py        # CLI runner for Channel-Wrapped retrospective
-│   └── generate_synthetic_export.py # Authentic mock Telegram export generator
-├── tests/
-│   ├── test_live_sync.py
-│   ├── test_bot_client.py
-│   ├── test_bot_formatter.py
-│   ├── test_bot_config.py
-│   ├── test_parser_and_circadian.py
-│   ├── test_lifecycle.py
-│   ├── test_otd.py
-│   ├── test_wrapped.py
-│   ├── test_dashboard.py
-│   └── test_renderer.py
-├── output/                # Generated interactive HTML dashboards and PNG charts
-├── .env.example           # Template for bot secrets (gitignored)
-├── environment.yml        # Conda environment definition
-├── requirements.txt       # Pip dependencies
-└── README.md
-```
-
-### Universal Decoupled Ingestion
-The ingestion layer (`src.parser.load_export`) is completely decoupled from channel names:
-1. Detects and parses all paginated `messages*.html` files in order.
-2. Extracts message IDs, UTC timestamps, local dates/times, raw text, word counts, photo/media flags, and extracted bracket tags.
-3. Automatically caches parsed data into `.cache/parsed_messages.parquet` for sub-second repeat runs (~0.2s vs. ~3s). If raw HTML files are modified or added, the cache automatically invalidates and re-indexes.
-
----
-
-## Getting Started
+## ⚡ Quick Start
 
 ### 1. Environment Setup
 
-**Using Conda (Recommended):**
 ```bash
+# Using Conda (Recommended)
 conda env create -f environment.yml
 conda activate tele-journal
-```
 
-**Using Pip / Virtualenv:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
+# Or using Pip
 pip install -r requirements.txt
 ```
 
-### 2. Testing with Synthetic Mock Data (No Private Data Needed)
-You can instantly generate an authentic mock Telegram export (`ChatExport_sample/`) to test all features:
-```bash
-python -m scripts.generate_synthetic_export --num-messages 400
-```
-This generates mock entries with realistic circadian curves, interest lifecycles (`[reading]`, `[coding]`, `[fitness]`, `[elden ring]`, `[ai agents]`), and multi-year memories.
+### 2. Set Up Your Telegram Companion Bot (5 Minutes)
 
-### 3. Adding Your Real Telegram Export
-1. Open Telegram Desktop $\rightarrow$ Navigate to your channel $\rightarrow$ Click **Export Chat History**.
-2. Select **HTML format** and your desired date range.
-3. Place the exported folder into this repository (e.g. `ChatExport_your_channel/`).
-*(Note: Real user export folders are strictly ignored by git to keep your personal thoughts private).*
+1. **Create your bot:** Open Telegram, search for [`@BotFather`](https://t.me/BotFather), send `/newbot`, and copy your HTTP API token.
+2. **Configure token:** Create a `.env` file in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your token: `TELEGRAM_BOT_TOKEN="your_token_here"`
+3. **Link your Telegram ID:** Run the discovery utility:
+   ```bash
+   python -m scripts.get_chat_id
+   ```
+   Open Telegram, search for your bot, and tap **START**. Your Chat ID will be captured and saved to `.env` automatically.
+4. **Enable Live Channel Sync:**
+   * Open your private journal channel $\rightarrow$ **Settings** $\rightarrow$ **Administrators** $\rightarrow$ **Add Admin**.
+   * Add your bot with **"Post Messages"** permission. Every new reflection you write will now stream into your analytics in real time!
+
+### 3. Run Your Bot & Generate Analytics
+
+```bash
+# Start the bot as a silent 24/7 background service on macOS (Recommended)
+python -m scripts.setup_daemon install
+
+# Dispatch today's flashback memory card to your Telegram chat
+python -m scripts.send_daily_otd
+
+# Generate and view the master dark-mode analytics dashboard in your browser
+python -m scripts.run_all --open
+```
 
 ---
 
-## Usage & CLI Examples
+## 🤖 Telegram Companion Bot Usage
 
-### 1. Run Master Journal Dossier (All-in-One)
-Run all 4 analytics modules in a single sub-second pass and generate the unified master dashboard:
+### In Telegram Direct Messages (with your bot)
+All commands feature an automatic security whitelist—only you (`TELEGRAM_CHAT_ID`) can interact with your bot.
+
+| Command | Action |
+| :--- | :--- |
+| **`/start`** or **`/help`** | Open welcome dossier and interactive navigation buttons. |
+| **`/otd`** | Display multi-year memories recorded on today's calendar date. |
+| **`/otd MM-DD`** | Flashback for a specific date (e.g. `/otd 09-15` or `/otd Sep 15`). |
+| **`/random`** | Discover a random past active journal day. |
+| **`/stats`** | Instant scorecard: total entries, words, book pages, streaks, and circadian persona. |
+| **`/tag <name>`** | Deep dive into an interest tag (e.g. `/tag f1` or `/tag reading`). |
+
+### Managing the macOS Background Daemon
+The daemon runs quietly across reboots, with logs written to `output/bot.log`.
+
 ```bash
-# Generate unified dashboard in output/dashboard.html
-python -m scripts.run_all
+# Check daemon health & view recent logs
+python -m scripts.setup_daemon status
 
-# Open directly in default web browser upon completion
+# Restart daemon (e.g. after adding new export archives)
+python -m scripts.setup_daemon restart
+
+# Stop and remove background service
+python -m scripts.setup_daemon uninstall
+
+# Or run interactively in a foreground terminal
+python -m scripts.run_bot
+```
+
+### Scheduled Daily Morning Push
+Schedule a daily flashback delivery to your Telegram chat every morning (e.g. at 8:00 AM via macOS `crontab` or `launchd`):
+
+```bash
+# Dispatch today's memory card
+python -m scripts.send_daily_otd
+
+# Preview the HTML card in your terminal without sending
+python -m scripts.send_daily_otd --dry-run
+```
+
+---
+
+## 📊 Analytics & Master Dossier CLI
+
+You can also run all analytics engines directly from your terminal or generate interactive HTML dashboards:
+
+### 1. Master Journal Dossier (All-in-One Dashboard)
+Runs all 4 analytical pipelines in a single sub-second pass and compiles `output/dashboard.html`:
+```bash
+# Generate and immediately open the dashboard in your default browser
 python -m scripts.run_all --open
 
-# Also output individual reports (circadian, lifecycle, wrapped, OTD)
+# Also output individual standalone reports (circadian, lifecycle, wrapped, OTD)
 python -m scripts.run_all --all-reports
 
 # Run against synthetic demo dataset
 python -m scripts.run_all --export-dir "ChatExport_sample"
 ```
 
-### 2. Run "On This Day" (OTD)
+### 2. "On This Day" (OTD) Time Capsule
 ```bash
-# Flashback for today's date
+# Today's memories
 python -m scripts.run_otd
 
-# Flashback for a specific calendar date (MM-DD or Month Day)
-python -m scripts.run_otd --date 09-15
-python -m scripts.run_otd --date "September 15"
-python -m scripts.run_otd --date yesterday
+# Custom date query with ±2 days window
+python -m scripts.run_otd --date 09-15 --window 2
 
-# Expand date window by ±2 days
-python -m scripts.run_otd --window 2
-
-# Discover a random past active journal day
+# Discover a random past memory
 python -m scripts.run_otd --random
-
-# Run against the synthetic demo dataset
-python -m scripts.run_otd --export-dir "ChatExport_sample" --date 09-15
 ```
 
-### 3. Run Tag & Hobby Lifecycles
+### 3. Tag & Hobby Lifecycles
+Track how interests and hobbies evolve over time from bracket tags (`[tag]`):
 ```bash
-python -m scripts.run_tag_lifecycles --export-dir "ChatExport_sample"
+python -m scripts.run_tag_lifecycles
 ```
+Outputs an interactive Plotly streamgraph and horizontal Gantt charts classifying topics into **Evergreen Passions**, **Seasonal Bursts**, and **Emerging Eras**.
 
-### 4. Run Circadian & Habit Heatmaps
+### 4. Circadian & Habit Heatmaps
 ```bash
-python -m scripts.run_circadian --export-dir "ChatExport_sample"
+python -m scripts.run_circadian
 ```
+Generates 24-hour message distribution curves, day-of-week heatmaps, and longitudinal night-owl habit shifts.
 
-### 5. Run Channel-Wrapped Retrospective
+### 5. Channel-Wrapped Retrospective ("Spotify Wrapped" Style)
 ```bash
-# Retrospective for the latest active year (e.g. 2024)
+# Retrospective for the latest active year (e.g. 2026)
 python -m scripts.run_wrapped
+
+# Retrospective across your entire journaling history
+python -m scripts.run_wrapped --all-time
 
 # Retrospective for a specific year
 python -m scripts.run_wrapped --year 2024
-
-# Retrospective for all recorded years
-python -m scripts.run_wrapped --all-time
-
-# Terminal output only (skip HTML)
-python -m scripts.run_wrapped --no-html
-
-# Run against synthetic demo dataset
-python -m scripts.run_wrapped --export-dir "ChatExport_sample" --year 2024
-### 6. Telegram Companion Bot & Live Channel Ingestion
-```bash
-# Link your personal Telegram account or journal channel (first-time setup)
-python -m scripts.get_chat_id
-
-# Dispatch today's flashback directly to your Telegram chat (or scheduled via cron)
-python -m scripts.send_daily_otd
-
-# Preview the formatted HTML message in terminal without sending
-python -m scripts.send_daily_otd --dry-run
-
-# Start interactive daemon & live channel ingestion in terminal
-python -m scripts.run_bot
-
-# Or install as a silent 24/7 background daemon on macOS (via launchd)
-python -m scripts.setup_daemon install
-python -m scripts.setup_daemon status
-python -m scripts.setup_daemon uninstall
 ```
 
 ---
 
-## Testing
+## 🧪 Testing
 
 Run the automated test suite across all modules:
 ```bash
 python -m unittest discover tests
 ```
-> **Self-Contained:** Tests automatically run against `ChatExport_sample` (or dynamically generate a temporary mock fixture if needed), allowing the entire test suite to pass on fresh clones and CI/CD runners without needing private personal data.
+> **Self-Contained:** Tests automatically run against `ChatExport_sample` with 100% mocked network calls, allowing all 46 unit tests to pass out-of-the-box on fresh clones without needing private personal data.
 
 ---
 
-## Potential Future Features
+## 🔒 Privacy & Data Isolation
 
-- **Concern & Anxiety Evolution:** Longitudinal tracking of worries, stressors, and emotional themes over time to see how past challenges evolved and resolved.
-- **"Ask Past You":** Semantic search and conversational Q&A (RAG) over your journal history to query what you thought or felt about specific topics in the past.
-- **Thought Chains & Self-Replies:** Tree visualization and latency analysis of how multi-month self-reply monologue threads evolve.
-- **Habit & Consistency Calendar Grid:** GitHub-style full-year daily activity heatmap highlighting unbroken streaks and reflection pauses.
-
----
-
-## License & Privacy
-Designed for personal journal reflection. Real export directories (`ChatExport_*`) and Parquet cache files are excluded from version control in `.gitignore` to protect personal privacy, while mock datasets (`ChatExport_sample/`) are safe for sharing.
+Designed strictly for personal journal reflection:
+* **Private Exports (`ChatExport_*`):** Excluded from version control in `.gitignore`.
+* **Bot Secrets (`.env`):** Bot tokens and chat IDs are strictly ignored by git.
+* **Access Control:** The bot rejects interaction attempts from unauthorized Telegram users.
+* **Public Demos:** All documentation assets and demo reports are compiled exclusively from sanitized mock datasets (`ChatExport_sample/`).
